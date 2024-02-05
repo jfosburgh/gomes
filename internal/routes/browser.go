@@ -9,7 +9,6 @@ import (
 )
 
 var (
-
 	//go:embed css/styles.css
 	css embed.FS
 )
@@ -38,7 +37,7 @@ func (cfg *configdata) handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func newBrowserRouter() *http.ServeMux {
 
-	pattern := filepath.Join("templates", "*.html")
+	pattern := filepath.Join("internal/routes/templates", "*.html")
 	templates := template.Must(template.ParseGlob(pattern))
 
 	gameData := gamedata{

@@ -1,0 +1,31 @@
+header,
+.content {
+	display: flex;
+}
+
+header>h1 {
+	flex-grow: 1;
+}
+
+.content {
+	flex-direction: column;
+	align-items: center;
+}
+
+.gamelist {
+	display: flex;
+	justify-content: center;
+	flex-wrap: wrap;
+}
+
+.game-card {
+	width: 200px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	margin-inline: 25px;
+}
+
+.game-card>p {
+	text-align: center;
+}

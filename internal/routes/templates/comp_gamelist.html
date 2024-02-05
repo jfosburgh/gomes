@@ -1,15 +1,15 @@
 {{ define "gamelist" }}
+{{ if .Games }}
+<h2>Pick a game to play!</h2>
 <div class='gamelist'>
-	{{ if .Games }}
-	<h2>Pick a game to play!</h2>
 	{{ range .Games }}
 	<div class="game-card" hx-get="/games/{{ .Name }}" hx-trigger="click">
 		<h3>{{ .Name }}</h3>
 		<p>{{ .Description }}</p>
 	</div>
 	{{ end }}
-	{{ else }}
-	<h2>Looks like there are no games implemented yet :(</h2>
-	{{ end }}
 </div>
+{{ else }}
+<h2>Looks like there are no games implemented yet :(</h2>
+{{ end }}
 {{ end }}
