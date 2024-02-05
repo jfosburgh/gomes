@@ -6,11 +6,9 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-)
 
-func handleIndex(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("<h1>Gomes</h1>"))
-}
+	"github.com/jfosburgh/gomes/internal/routes"
+)
 
 func main() {
 
@@ -21,9 +19,7 @@ func main() {
 		port = "8080"
 	}
 
-	router := http.NewServeMux()
-
-	router.HandleFunc("/", handleIndex)
+	router := routes.NewRouter()
 
 	fmt.Printf("Starting server at http://localhost:%s\n", port)
 	if err := http.ListenAndServe(":"+port, router); err != nil {
