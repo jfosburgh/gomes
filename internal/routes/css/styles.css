@@ -50,6 +50,10 @@ header>h1 {
 	grid-row: auto;
 	grid-column: auto;
 	background: white;
+	font-size: 3rem;
+	display: grid;
+	justify-content: center;
+	align-items: center;
 }
 
 .enabled:hover {
@@ -57,7 +61,7 @@ header>h1 {
 }
 
 .correct {
-	background: green;
+	background: #10d910;
 }
 
 .button-group {

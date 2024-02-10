@@ -3,6 +3,7 @@ package tictactoe
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 )
 
@@ -24,6 +25,9 @@ func isOver(state []string) (bool, []int) {
 	}
 	if state[2] != "_" && (state[2] == state[4] && state[2] == state[6]) {
 		return true, []int{2, 4, 6}
+	}
+	if !slices.Contains(state, "_") {
+		return true, []int{}
 	}
 	return false, []int{}
 }
@@ -47,8 +51,11 @@ func ProcessTurn(state []string, player, id string) ([]string, string, string, b
 
 	gameText := fmt.Sprintf("%s's Turn!", player)
 	gameOver, winningCells := isOver(state)
-	if gameOver {
+	if gameOver && len(winningCells) == 3 {
 		gameText = fmt.Sprintf("Game Over, %s won!", state[winningCells[0]])
+	}
+	if gameOver && len(winningCells) == 0 {
+		gameText = "It's a tie!"
 	}
 
 	return state, gameText, player, gameOver, winningCells, nil
