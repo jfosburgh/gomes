@@ -1,15 +1,13 @@
-{{ define "gamelist" }}
 {{ if .Games }}
 <h2>Pick a game to play!</h2>
 <div class='gamelist'>
-	{{ range .Games }}
-	<div class="game-card" hx-get="/games/{{ .Name }}" hx-trigger="click">
-		<h3>{{ .Name }}</h3>
-		<p>{{ .Description }}</p>
+	{{ range $name, $game := .Games }}
+	<div class="game-card" hx-get="/games/{{ $name }}" hx-trigger="click" hx-target=".content">
+		<h3>{{ $game.Name }}</h3>
+		<p>{{ $game.Description }}</p>
 	</div>
 	{{ end }}
 </div>
 {{ else }}
 <h2>Looks like there are no games implemented yet :(</h2>
-{{ end }}
 {{ end }}
