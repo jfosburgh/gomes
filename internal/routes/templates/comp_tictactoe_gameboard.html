@@ -15,7 +15,7 @@
 		{{ end }}
 		{{ end }}
 	</div>
-	<p>{{ .StatusText }}</p>
+	<p id="game-text">{{ .StatusText }}</p>
 	{{ if .GameOver }}
 	<div class="button-group">
 		<button hx-get="/games/tictactoe" hx-target=".content">Play Again</button>

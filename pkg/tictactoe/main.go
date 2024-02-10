@@ -7,6 +7,11 @@ import (
 	"strconv"
 )
 
+var (
+	Modes        = map[string]string{"pvp": "Player vs. Player", "pvb": "Player vs. Bot"}
+	Difficulties = []string{"Easy", "Medium", "Hard", "Unbeatable"}
+)
+
 func NewGame() ([]string, string, string) {
 	return []string{"_", "_", "_", "_", "_", "_", "_", "_", "_"}, "X's Turn!", "X"
 }

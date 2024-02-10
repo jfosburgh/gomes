@@ -1,0 +1,16 @@
+<div id="modeselect">
+	<form hx-post="/mode" hx-target="#modeselect" hx-trigger="change" hx-swap="outerHTML">
+		<select name="modeselect">
+			{{ range .Modes }}
+			{{ if eq .Value $.SelectedMode }}
+			<option selected="selected" value="{{.Value}}">{{.Content}}</option>
+			{{ else }}
+			<option value="{{.Value}}">{{.Content}}</option>
+			{{ end }}
+			{{ end }}
+		</select>
+	</form>
+	{{ if eq .SelectedMode "1" }}
+	{{ template "comp_difficulty_select.html" .Difficulties }}
+	{{ end }}
+</div>

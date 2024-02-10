@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/jfosburgh/gomes/pkg/tictactoe"
@@ -15,7 +16,30 @@ import (
 var (
 	//go:embed css/styles.css
 	css embed.FS
+
+	Modes = []selectoption{
+		{
+			Value:   "0",
+			Content: "Player vs. Player",
+		},
+		{
+			Value:   "1",
+			Content: "Player vs. Bot",
+		},
+	}
+
+	Difficulties = []selectoption{
+		{Value: "0", Content: "Easy"},
+		{Value: "1", Content: "Medium"},
+		{Value: "2", Content: "Hard"},
+		{Value: "3", Content: "Unbeatable"},
+	}
 )
+
+type selectoption struct {
+	Value   string
+	Content string
+}
 
 type game struct {
 	Name        string
@@ -45,6 +69,9 @@ type gamestate struct {
 	StatusText   string
 	ActivePlayer string
 	GameOver     bool
+	Modes        []selectoption
+	Difficulties []selectoption
+	SelectedMode string
 }
 
 func (cfg *configdata) handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +119,17 @@ func (cfg *configdata) handleNewGame(w http.ResponseWriter, r *http.Request) {
 	stateString := strings.Join(state, "")
 	template_name := fmt.Sprintf("%s.html", game_key)
 
-	err := cfg.Templates.ExecuteTemplate(w, template_name, gamestate{State: fillBoard(state, "_", []int{}, false), StateString: stateString, StatusText: status, ActivePlayer: player, GameOver: false})
+	gameState := gamestate{
+		State:        fillBoard(state, "_", []int{}, false),
+		StateString:  stateString,
+		StatusText:   status,
+		ActivePlayer: player,
+		GameOver:     false,
+		Difficulties: Difficulties,
+		Modes:        Modes,
+		SelectedMode: Modes[0].Value,
+	}
+	err := cfg.Templates.ExecuteTemplate(w, template_name, gameState)
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Printf("Error parsing %s, %v\n", template_name, err)
@@ -122,10 +159,35 @@ func (cfg *configdata) handleGameTurn(w http.ResponseWriter, r *http.Request) {
 	stateString = strings.Join(state, "")
 	template_name := fmt.Sprintf("comp_%s_gameboard.html", game_key)
 
-	err = cfg.Templates.ExecuteTemplate(w, template_name, gamestate{State: fillBoard(state, "_", winningCells, gameOver), StateString: stateString, StatusText: status, ActivePlayer: player, GameOver: gameOver})
+	gameState := gamestate{
+		State:        fillBoard(state, "_", winningCells, gameOver),
+		StateString:  stateString,
+		StatusText:   status,
+		ActivePlayer: player,
+		GameOver:     gameOver,
+		Difficulties: Difficulties,
+		Modes:        Modes,
+		SelectedMode: Modes[0].Value,
+	}
+	err = cfg.Templates.ExecuteTemplate(w, template_name, gameState)
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Printf("Error parsing %s, %v\n", template_name, err)
+	}
+}
+
+func (cfg *configdata) handleModeChange(w http.ResponseWriter, r *http.Request) {
+	modeIndex, err := strconv.Atoi(r.FormValue("modeselect"))
+	gameState := gamestate{
+		Modes:        Modes,
+		Difficulties: Difficulties,
+		SelectedMode: Modes[modeIndex].Value,
+	}
+
+	err = cfg.Templates.ExecuteTemplate(w, "comp_mode_select.html", gameState)
+	if err != nil {
+		w.WriteHeader(500)
+		fmt.Printf("Error parsing %s, %v\n", "comp_mode_select.html", err)
 	}
 }
 
@@ -159,6 +221,7 @@ func newBrowserRouter() *http.ServeMux {
 	browserRouter.HandleFunc("GET /gamelist", config.handleGetGamelist)
 	browserRouter.HandleFunc("GET /games/{game}", config.handleNewGame)
 	browserRouter.HandleFunc("POST /games/{game}", config.handleGameTurn)
+	browserRouter.HandleFunc("POST /mode", config.handleModeChange)
 
 	return browserRouter
 }
