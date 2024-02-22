@@ -6,50 +6,25 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
-	"slices"
-	"strconv"
-	"strings"
+	// "strconv"
 
+	"github.com/jfosburgh/gomes/pkg/game"
 	"github.com/jfosburgh/gomes/pkg/tictactoe"
 )
 
 var (
 	//go:embed css/styles.css
 	css embed.FS
-
-	Modes = []selectoption{
-		{
-			Value:   "0",
-			Content: "Player vs. Player",
-		},
-		{
-			Value:   "1",
-			Content: "Player vs. Bot",
-		},
-	}
-
-	Difficulties = []selectoption{
-		{Value: "0", Content: "Easy"},
-		{Value: "1", Content: "Medium"},
-		{Value: "2", Content: "Hard"},
-		{Value: "3", Content: "Unbeatable"},
-	}
 )
 
-type selectoption struct {
-	Value   string
-	Content string
+type gamedata struct {
+	Handlers map[string]game.Handler
+	Games    map[string]game.Game
 }
 
-type game struct {
+type gameinfo struct {
 	Name        string
 	Description string
-	NewGame     func() ([]string, string, string)
-	ProcessTurn func([]string, string, string) ([]string, string, string, bool, []int, error)
-}
-
-type gamedata struct {
-	Games map[string]game
 }
 
 type configdata struct {
@@ -57,25 +32,21 @@ type configdata struct {
 	GameData  gamedata
 }
 
-type gamecell struct {
-	Content   string
-	Classes   string
-	Clickable bool
-}
+func (cfg *configdata) gamelist() map[string]gameinfo {
+	games := map[string]gameinfo{}
+	for id, g := range cfg.GameData.Handlers {
+		name, description := g.Info()
+		games[id] = gameinfo{
+			Name:        name,
+			Description: description,
+		}
+	}
 
-type gamestate struct {
-	State        []gamecell
-	StateString  string
-	StatusText   string
-	ActivePlayer string
-	GameOver     bool
-	Modes        []selectoption
-	Difficulties []selectoption
-	SelectedMode string
+	return games
 }
 
 func (cfg *configdata) handleIndex(w http.ResponseWriter, r *http.Request) {
-	err := cfg.Templates.ExecuteTemplate(w, "index.html", &cfg.GameData)
+	err := cfg.Templates.ExecuteTemplate(w, "index.html", cfg.gamelist())
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Println("Error parsing index:", err)
@@ -83,53 +54,81 @@ func (cfg *configdata) handleIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *configdata) handleGetGamelist(w http.ResponseWriter, r *http.Request) {
-	err := cfg.Templates.ExecuteTemplate(w, "comp_gamelist.html", &cfg.GameData)
+	err := cfg.Templates.ExecuteTemplate(w, "comp_gamelist.html", cfg.gamelist())
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Println("Error parsing comp_gamelist:", err)
 	}
 }
 
-func fillBoard(state []string, empty_state string, winning []int, gameOver bool) []gamecell {
-	gamecells := []gamecell{}
-	for index, content := range state {
-		classes := "game-cell"
-
-		if !(content != empty_state || gameOver) {
-			classes += " enabled"
-		}
-		if slices.Contains(winning, index) {
-			classes += " correct"
-		}
-		gamecells = append(gamecells, gamecell{Content: content, Classes: classes, Clickable: content == empty_state && !gameOver})
-	}
-
-	return gamecells
-}
-
 func (cfg *configdata) handleNewGame(w http.ResponseWriter, r *http.Request) {
-	game_key := r.PathValue("game")
-	game, exists := cfg.GameData.Games[game_key]
+	gamekey := r.PathValue("game")
+	handler, exists := cfg.GameData.Handlers[gamekey]
 	if !exists {
 		w.WriteHeader(404)
 		return
 	}
 
-	state, status, player := game.NewGame()
-	stateString := strings.Join(state, "")
-	template_name := fmt.Sprintf("%s.html", game_key)
+	currentGame, id := handler.NewGame()
+	gameOptions := handler.GameOptions()
+	templateID, gameData := currentGame.TemplateData()
 
-	gameState := gamestate{
-		State:        fillBoard(state, "_", []int{}, false),
-		StateString:  stateString,
-		StatusText:   status,
-		ActivePlayer: player,
-		GameOver:     false,
-		Difficulties: Difficulties,
-		Modes:        Modes,
-		SelectedMode: Modes[0].Value,
+	cfg.GameData.Games[id] = currentGame
+
+	template_name := fmt.Sprintf("%s.html", templateID)
+	type templatedata struct {
+		GameData    interface{}
+		GameOptions interface{}
+		Started     bool
+		ID          string
 	}
-	err := cfg.Templates.ExecuteTemplate(w, template_name, gameState)
+
+	templateData := templatedata{
+		GameData:    gameData,
+		GameOptions: gameOptions,
+		Started:     false,
+		ID:          id,
+	}
+
+	err := cfg.Templates.ExecuteTemplate(w, template_name, templateData)
+	if err != nil {
+		w.WriteHeader(500)
+		fmt.Printf("Error parsing %s, %v\n", template_name, err)
+	}
+}
+
+func (cfg *configdata) handleGameStart(w http.ResponseWriter, r *http.Request) {
+	gameID := r.PathValue("game")
+	currentGame, exists := cfg.GameData.Games[gameID]
+	if !exists {
+		w.WriteHeader(404)
+		return
+	}
+
+	currentGame.Start()
+	templateID, gameData := currentGame.TemplateData()
+
+	handler := cfg.GameData.Handlers[templateID]
+	gameOptions := handler.GameOptions()
+	gameOptions.SelectedMode = r.FormValue("modeselect")
+	gameOptions.SelectedDifficulty = r.FormValue("difficultyselect")
+
+	template_name := fmt.Sprintf("%s.html", templateID)
+	type templatedata struct {
+		GameData    interface{}
+		GameOptions interface{}
+		Started     bool
+		ID          string
+	}
+
+	templateData := templatedata{
+		GameData:    gameData,
+		GameOptions: gameOptions,
+		Started:     true,
+		ID:          gameID,
+	}
+
+	err := cfg.Templates.ExecuteTemplate(w, template_name, templateData)
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Printf("Error parsing %s, %v\n", template_name, err)
@@ -137,39 +136,27 @@ func (cfg *configdata) handleNewGame(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *configdata) handleGameTurn(w http.ResponseWriter, r *http.Request) {
-	game_key := r.PathValue("game")
-	game, exists := cfg.GameData.Games[game_key]
+	gameID := r.PathValue("game")
+	currentGame, exists := cfg.GameData.Games[gameID]
 	if !exists {
 		w.WriteHeader(404)
 		return
 	}
 
 	params := r.URL.Query()
-	stateString := params.Get("state")
-	state := strings.Split(stateString, "")
-	player := params.Get("player")
-	id := params.Get("id")
+	move := params.Get("move")
 
-	state, status, player, gameOver, winningCells, err := game.ProcessTurn(state, player, id)
+	err := currentGame.ProcessTurn(move)
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Println("Error processing turn:", err)
 		return
 	}
-	stateString = strings.Join(state, "")
-	template_name := fmt.Sprintf("comp_%s_gameboard.html", game_key)
 
-	gameState := gamestate{
-		State:        fillBoard(state, "_", winningCells, gameOver),
-		StateString:  stateString,
-		StatusText:   status,
-		ActivePlayer: player,
-		GameOver:     gameOver,
-		Difficulties: Difficulties,
-		Modes:        Modes,
-		SelectedMode: Modes[0].Value,
-	}
-	err = cfg.Templates.ExecuteTemplate(w, template_name, gameState)
+	templateID, templateData := currentGame.TemplateData()
+	template_name := fmt.Sprintf("comp_%s_gameboard.html", templateID)
+
+	err = cfg.Templates.ExecuteTemplate(w, template_name, templateData)
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Printf("Error parsing %s, %v\n", template_name, err)
@@ -177,14 +164,38 @@ func (cfg *configdata) handleGameTurn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *configdata) handleModeChange(w http.ResponseWriter, r *http.Request) {
-	modeIndex, err := strconv.Atoi(r.FormValue("modeselect"))
-	gameState := gamestate{
-		Modes:        Modes,
-		Difficulties: Difficulties,
-		SelectedMode: Modes[modeIndex].Value,
+	params := r.URL.Query()
+	gamekey := params.Get("game")
+	handler, exists := cfg.GameData.Handlers[gamekey]
+	if !exists {
+		w.WriteHeader(404)
+		return
 	}
 
-	err = cfg.Templates.ExecuteTemplate(w, "comp_mode_select.html", gameState)
+	// modeIndex, err := strconv.Atoi(r.FormValue("modeselect"))
+	mode := r.FormValue("modeselect")
+	difficulty := r.FormValue("difficultyselect")
+	gameOptions := handler.GameOptions()
+	// gameOptions.SelectedMode = gameOptions.Modes[modeIndex].Value
+	gameOptions.SelectedMode = mode
+	if difficulty != "" {
+		gameOptions.SelectedDifficulty = difficulty
+	}
+
+	params = r.URL.Query()
+	id := params.Get("id")
+	type templatedata struct {
+		GameOptions game.GameOptions
+		Started     bool
+		ID          string
+	}
+	templateData := templatedata{
+		GameOptions: gameOptions,
+		Started:     false,
+		ID:          id,
+	}
+
+	err := cfg.Templates.ExecuteTemplate(w, "comp_mode_select.html", templateData)
 	if err != nil {
 		w.WriteHeader(500)
 		fmt.Printf("Error parsing %s, %v\n", "comp_mode_select.html", err)
@@ -196,18 +207,10 @@ func newBrowserRouter() *http.ServeMux {
 	templates := template.Must(template.ParseGlob(pattern))
 
 	gameData := gamedata{
-		make(map[string]game),
-	}
-	gameData.Games["tictactoe"] = game{
-		Name:        "Tic-Tac-Toe",
-		Description: "Be the first to get three in a row!",
-		NewGame:     tictactoe.NewGame,
-		ProcessTurn: tictactoe.ProcessTurn,
-	}
-	gameData.Games["chess"] = game{
-		Name:        "Chess",
-		Description: "A game of tactical prowess. Be the first to capture the enemy's king!",
-		NewGame:     func() ([]string, string, string) { return []string{}, "", "" },
+		Handlers: map[string]game.Handler{
+			"tictactoe": &tictactoe.Game{},
+		},
+		Games: map[string]game.Game{},
 	}
 
 	config := configdata{
@@ -222,6 +225,7 @@ func newBrowserRouter() *http.ServeMux {
 	browserRouter.HandleFunc("GET /games/{game}", config.handleNewGame)
 	browserRouter.HandleFunc("POST /games/{game}", config.handleGameTurn)
 	browserRouter.HandleFunc("POST /mode", config.handleModeChange)
+	browserRouter.HandleFunc("POST /games/{game}/start", config.handleGameStart)
 
 	return browserRouter
 }

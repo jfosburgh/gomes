@@ -1,8 +1,9 @@
 <div id="modeselect">
-	<form hx-post="/mode" hx-target="#modeselect" hx-trigger="change" hx-swap="outerHTML">
-		<select name="modeselect">
-			{{ range .Modes }}
-			{{ if eq .Value $.SelectedMode }}
+	<form hx-post="/mode?game={{.GameOptions.Name}}&id={{.ID}}" hx-target="#modeselect" hx-trigger="change"
+		hx-swap="outerHTML" hx-include="select">
+		<select name="modeselect" {{if .Started}}disabled{{end}}>
+			{{ range .GameOptions.Modes }}
+			{{ if eq .Value $.GameOptions.SelectedMode }}
 			<option selected="selected" value="{{.Value}}">{{.Content}}</option>
 			{{ else }}
 			<option value="{{.Value}}">{{.Content}}</option>
@@ -10,7 +11,9 @@
 			{{ end }}
 		</select>
 	</form>
-	{{ if eq .SelectedMode "1" }}
-	{{ template "comp_difficulty_select.html" .Difficulties }}
+	{{ if eq .GameOptions.SelectedMode "1" }}
+	{{ template "comp_difficulty_select.html" . }}
 	{{ end }}
+	<button hx-post="/games/{{.ID}}/start" hx-target=".content" hx-include="select" {{if
+		.Started}}disabled{{end}}>Start</button>
 </div>

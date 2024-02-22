@@ -1,9 +1,10 @@
 <div class="board-container">
 	<div class="game-board" id="tictactoe">
+		{{ $gameID := .ID }}
 		{{ range $index, $cell := .State }}
 		{{ if $cell.Clickable }}
 		<div class="{{$cell.Classes}}" id="{{ $index }}" hx-swap="outerHTML" hx-target=".board-container"
-			hx-post="/games/tictactoe?state={{$.StateString}}&player={{$.ActivePlayer}}&id={{$index}}">
+			hx-post="/games/{{$gameID}}?move={{$index}}">
 
 		</div>
 		{{ else }}

@@ -10,6 +10,7 @@ header>h1 {
 .content {
 	flex-direction: column;
 	align-items: center;
+	justify-content: space-between;
 }
 
 .gamelist {
@@ -32,6 +33,7 @@ header>h1 {
 
 #game-name {
 	font-size: 3rem;
+	margin: 0px;
 }
 
 .board-container {
@@ -80,9 +82,10 @@ header>h1 {
 }
 
 #modeselect {
-	height: 100px;
+	height: 150px;
 	display: flex;
 	flex-direction: column;
+	justify-content: start;
 }
 
 #modeselect>form {

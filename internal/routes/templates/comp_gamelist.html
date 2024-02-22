@@ -1,7 +1,7 @@
-{{ if .Games }}
+{{ if . }}
 <h2>Pick a game to play!</h2>
 <div class='gamelist'>
-	{{ range $name, $game := .Games }}
+	{{ range $name, $game := . }}
 	<div class="game-card" hx-get="/games/{{ $name }}" hx-trigger="click" hx-target=".content">
 		<h3>{{ $game.Name }}</h3>
 		<p>{{ $game.Description }}</p>
