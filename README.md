@@ -22,11 +22,11 @@ Currently supported clients are:
 - [ ] Browser 
 - [ ] TUI (terminal user interface)
 - [ ] Generic JSON api
-#### TUI Instructions
-```bash
-make build tui
-make run tui
-```
+<!-- #### TUI Instructions -->
+<!-- ```bash -->
+<!-- make build tui -->
+<!-- make run tui -->
+<!-- ``` -->
 ## The Games
 - [ ] Tic-Tac-Toe
 - [ ] Connect4
@@ -35,4 +35,7 @@ make run tui
 - [ ] Wordle
 and more to come!
 ## Technical Details
-This project uses Go as the foundation, with [HTMX](https://htmx.org/) and [templ](https://templ.guide/) for the browser frontend, [bubbletea](https://github.com/charmbracelet/bubbletea) for the TUI, and [chi](https://go-chi.io/#/) (probably, still tbd) to handle the api calls. 
+This project uses Go as the foundation, with [HTMX](https://htmx.org/) for the browser frontend, and (will probably use) [bubbletea](https://github.com/charmbracelet/bubbletea) for the TUI.
+
+# Contributing
+If you would like to contribute, fork the repo and make a pull request against main with your changes.
