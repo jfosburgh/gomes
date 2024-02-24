@@ -9,7 +9,7 @@ type Handler interface {
 type Game interface {
 	TemplateData() (string, interface{})
 	ProcessTurn(string) error
-	Start()
+	Start(GameOptions)
 }
 
 type SelectOption struct {
@@ -23,4 +23,6 @@ type GameOptions struct {
 	SelectedMode       string
 	SelectedDifficulty string
 	Name               string
+	Bot                bool
+	PlayerID           string
 }

@@ -9,4 +9,9 @@
 		{{ end }}
 		{{ end }}
 	</select>
+	Play as:
+	<select name="playerselect" {{if .Started}}disabled{{end}}>
+		<option value="X" {{if eq .GameOptions.PlayerID "X" }}selected="selected" {{end}}>X</option>
+		<option value="O" {{if eq .GameOptions.PlayerID "O" }}selected="selected" {{end}}>O</option>
+	</select>
 </form>

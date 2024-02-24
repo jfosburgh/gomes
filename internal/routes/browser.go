@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
-	// "strconv"
 
 	"github.com/jfosburgh/gomes/pkg/game"
 	"github.com/jfosburgh/gomes/pkg/tictactoe"
@@ -105,13 +104,17 @@ func (cfg *configdata) handleGameStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentGame.Start()
-	templateID, gameData := currentGame.TemplateData()
-
+	templateID, _ := currentGame.TemplateData()
 	handler := cfg.GameData.Handlers[templateID]
 	gameOptions := handler.GameOptions()
 	gameOptions.SelectedMode = r.FormValue("modeselect")
-	gameOptions.SelectedDifficulty = r.FormValue("difficultyselect")
+	if r.FormValue("difficultyselect") != "" {
+		gameOptions.SelectedDifficulty = r.FormValue("difficultyselect")
+		gameOptions.PlayerID = r.FormValue("playerselect")
+	}
+
+	currentGame.Start(gameOptions)
+	templateID, gameData := currentGame.TemplateData()
 
 	template_name := fmt.Sprintf("%s.html", templateID)
 	type templatedata struct {
@@ -163,6 +166,31 @@ func (cfg *configdata) handleGameTurn(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (cfg *configdata) handleBotTurn(w http.ResponseWriter, r *http.Request) {
+	gameID := r.PathValue("game")
+	currentGame, exists := cfg.GameData.Games[gameID]
+	if !exists {
+		w.WriteHeader(404)
+		return
+	}
+
+	err := currentGame.ProcessTurn("")
+	if err != nil {
+		w.WriteHeader(500)
+		fmt.Println("Error processing turn:", err)
+		return
+	}
+
+	templateID, templateData := currentGame.TemplateData()
+	template_name := fmt.Sprintf("comp_%s_gameboard.html", templateID)
+
+	err = cfg.Templates.ExecuteTemplate(w, template_name, templateData)
+	if err != nil {
+		w.WriteHeader(500)
+		fmt.Printf("Error parsing %s, %v\n", template_name, err)
+	}
+}
+
 func (cfg *configdata) handleModeChange(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	gamekey := params.Get("game")
@@ -175,11 +203,14 @@ func (cfg *configdata) handleModeChange(w http.ResponseWriter, r *http.Request) 
 	// modeIndex, err := strconv.Atoi(r.FormValue("modeselect"))
 	mode := r.FormValue("modeselect")
 	difficulty := r.FormValue("difficultyselect")
+	playerID := r.FormValue("playerselect")
 	gameOptions := handler.GameOptions()
 	// gameOptions.SelectedMode = gameOptions.Modes[modeIndex].Value
 	gameOptions.SelectedMode = mode
+	gameOptions.Bot = mode == "1"
 	if difficulty != "" {
 		gameOptions.SelectedDifficulty = difficulty
+		gameOptions.PlayerID = playerID
 	}
 
 	params = r.URL.Query()
@@ -224,6 +255,7 @@ func newBrowserRouter() *http.ServeMux {
 	browserRouter.HandleFunc("GET /gamelist", config.handleGetGamelist)
 	browserRouter.HandleFunc("GET /games/{game}", config.handleNewGame)
 	browserRouter.HandleFunc("POST /games/{game}", config.handleGameTurn)
+	browserRouter.HandleFunc("POST /games/{game}/bot", config.handleBotTurn)
 	browserRouter.HandleFunc("POST /mode", config.handleModeChange)
 	browserRouter.HandleFunc("POST /games/{game}/start", config.handleGameStart)
 
