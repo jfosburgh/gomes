@@ -28,7 +28,7 @@ Currently supported clients are:
 <!-- make run tui -->
 <!-- ``` -->
 ## The Games
-- [ ] Tic-Tac-Toe
+- [x] Tic-Tac-Toe
 - [ ] Connect4
 - [ ] Checkers
 - [ ] Chess
