@@ -32,9 +32,9 @@ var (
 	}
 
 	Depths = map[string]int{
-		"0": 0,
-		"1": 3,
-		"2": 6,
+		"0": 1,
+		"1": 2,
+		"2": 4,
 		"3": 9,
 	}
 )
@@ -175,10 +175,139 @@ func moves(state []string) []int {
 
 func (g *Game) BotTurn() int {
 	empty := moves(g.State)
-	if g.Depth == 0 {
-		return empty[mrand.Intn(len(empty))]
+	bestVal := -100
+	vals := []int{}
+	for _, move := range empty {
+		newState := make([]string, len(g.State))
+		copy(newState, g.State)
+		newState[move] = g.CurrentPlayer
+		nextPlayer := "X"
+		if g.CurrentPlayer == "X" {
+			nextPlayer = "O"
+		}
+		value := minimax(newState, nextPlayer, g.Depth-1)
+		if g.CurrentPlayer == "O" {
+			value *= -1
+		}
+
+		vals = append(vals, value)
+
+		if value > bestVal {
+			bestVal = value
+		}
 	}
-	return -1
+
+	moveOptions := []int{}
+	for i, val := range vals {
+		if val == bestVal {
+			moveOptions = append(moveOptions, empty[i])
+		}
+	}
+
+	bestMove := moveOptions[mrand.Intn(len(moveOptions))]
+	return bestMove
+}
+
+func boardString(state []string) string {
+	return fmt.Sprintf("%s|%s|%s\n-----\n%s|%s|%s\n-----\n%s|%s|%s",
+		state[0],
+		state[1],
+		state[2],
+		state[3],
+		state[4],
+		state[5],
+		state[6],
+		state[7],
+		state[8],
+	)
+}
+
+func boardValue(state []string) int {
+	gameOver, winningCells := status(state)
+	if gameOver && len(winningCells) == 1 {
+		return 0
+	} else if gameOver && state[winningCells[0]] == "X" {
+		return 10
+	} else if gameOver {
+		return -10
+	}
+
+	tris := [][]int{
+		{0, 1, 2},
+		{3, 4, 5},
+		{6, 7, 8},
+		{0, 3, 6},
+		{1, 4, 7},
+		{2, 5, 8},
+		{0, 4, 8},
+		{2, 4, 5},
+	}
+
+	value := 0
+
+	for _, tri := range tris {
+		states := []string{
+			state[tri[0]],
+			state[tri[1]],
+			state[tri[2]],
+		}
+
+		xCount := 0
+		oCount := 0
+		for _, p := range states {
+			if p == "X" {
+				xCount++
+			}
+			if p == "O" {
+				oCount++
+			}
+		}
+		if xCount > 1 && oCount == 0 {
+			rowVal := 1 + 2*(xCount-1)
+			value += rowVal
+		}
+		if oCount > 1 && xCount == 0 {
+			rowVal := 1 + 2*(oCount-1)
+			value -= rowVal
+		}
+	}
+
+	return value
+}
+
+func minimax(state []string, player string, depth int) int {
+	if depth == 0 {
+		return boardValue(state)
+	}
+	empty := moves(state)
+	if len(empty) == 0 {
+		return boardValue(state)
+	}
+	value := []int{}
+	for _, move := range empty {
+		newState := make([]string, len(state))
+		copy(newState, state)
+		newState[move] = player
+		gameOver, winningCells := status(newState)
+		if gameOver && len(winningCells) == 1 {
+			value = append(value, 0)
+		} else if gameOver && newState[winningCells[0]] == "X" {
+			value = append(value, 10)
+		} else if gameOver {
+			value = append(value, -10)
+		} else {
+			if player == "X" {
+				value = append(value, minimax(newState, "O", depth-1))
+			} else {
+				value = append(value, minimax(newState, "X", depth-1))
+			}
+		}
+	}
+
+	if player == "O" {
+		return slices.Min(value)
+	}
+	return slices.Max(value)
 }
 
 func (g *Game) ProcessTurn(id string) error {
@@ -207,7 +336,7 @@ func (g *Game) ProcessTurn(id string) error {
 	if !g.Active && len(g.Correct) == 3 {
 		g.Text = fmt.Sprintf("Game Over, %s won!", g.State[g.Correct[0]])
 	}
-	if !g.Active && len(g.Correct) != 0 {
+	if !g.Active && len(g.Correct) == 1 {
 		g.Text = "It's a tie!"
 	}
 
