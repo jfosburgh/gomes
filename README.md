@@ -37,5 +37,5 @@ and more to come!
 ## Technical Details
 This project uses Go as the foundation, with [HTMX](https://htmx.org/) for the browser frontend, and (will probably use) [bubbletea](https://github.com/charmbracelet/bubbletea) for the TUI.
 
-# Contributing
+## Contributing
 If you would like to contribute, fork the repo and make a pull request against main with your changes.
