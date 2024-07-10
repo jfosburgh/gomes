@@ -4,7 +4,7 @@ import "testing"
 
 func GameEquals(t *testing.T, expected, actual *ChessGame) {
 	EBEEqual(t, expected.EBE, actual.EBE)
-	// BitBoardEqual(t, expected.Bitboard, actual.Bitboard)
+	BitBoardEqual(t, expected.Bitboard, actual.Bitboard)
 }
 
 func TestMakeUnmakeMove(t *testing.T) {

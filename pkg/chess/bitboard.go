@@ -32,11 +32,19 @@ func To2DString(board uint64) string {
 	return strings.Join(twoDArray, "\n")
 }
 
-func (b *BitBoard) AllPieces() uint64 {
+func (b BitBoard) AllPieces() uint64 {
 	result := uint64(0)
-	for _, pieceBoard := range *b {
+	for _, pieceBoard := range b {
 		result = result | pieceBoard
 	}
 
 	return result
+}
+
+func (b BitBoard) Remove(piece, position int) {
+	b[piece] = b[piece] & (^(0b1 << position))
+}
+
+func (b BitBoard) Add(piece, position int) {
+	b[piece] = b[piece] | (0b1 << position)
 }

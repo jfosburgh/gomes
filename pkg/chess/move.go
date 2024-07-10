@@ -19,8 +19,14 @@ type Move struct {
 func (c *ChessGame) MakeMove(move Move) {
 	c.EBE.Board[move.Start] = EMPTY
 	c.EBE.Board[move.End] = move.Piece
+
+	c.Bitboard.Add(move.Piece, move.End)
+	c.Bitboard.Remove(move.Piece, move.Start)
+
 	if move.Promotion != 0 {
 		c.EBE.Board[move.End] = move.Promotion
+		c.Bitboard.Remove(move.Piece, move.End)
+		c.Bitboard.Add(move.Promotion, move.End)
 	}
 
 	if move.Capture != 0 {
@@ -33,18 +39,30 @@ func (c *ChessGame) MakeMove(move Move) {
 		case move.Piece>>3 == 0 && move.End == 6:
 			c.EBE.Board[7] = EMPTY
 			c.EBE.Board[5] = WHITE | ROOK
+
+			c.Bitboard.Remove(7, WHITE|ROOK)
+			c.Bitboard.Add(5, WHITE|ROOK)
 		// white queen side
 		case move.Piece>>3 == 0 && move.End == 2:
 			c.EBE.Board[0] = EMPTY
 			c.EBE.Board[3] = WHITE | ROOK
+
+			c.Bitboard.Remove(0, WHITE|ROOK)
+			c.Bitboard.Add(3, WHITE|ROOK)
 		// black king side
 		case move.Piece>>3 == 1 && move.End == 62:
 			c.EBE.Board[63] = EMPTY
-			c.EBE.Board[61] = WHITE | ROOK
+			c.EBE.Board[61] = BLACK | ROOK
+
+			c.Bitboard.Remove(63, BLACK|ROOK)
+			c.Bitboard.Add(61, BLACK|ROOK)
 		// black queen side
 		case move.Piece>>3 == 1 && move.End == 58:
 			c.EBE.Board[56] = EMPTY
 			c.EBE.Board[59] = WHITE | ROOK
+
+			c.Bitboard.Remove(56, BLACK|ROOK)
+			c.Bitboard.Add(59, BLACK|ROOK)
 		}
 	}
 
@@ -98,24 +116,39 @@ func (c *ChessGame) UnmakeMove(move Move) {
 	c.EBE.Board[move.Start] = move.Piece
 	c.EBE.Board[move.End] = EMPTY
 
+	c.Bitboard.Add(move.Piece, move.Start)
+	c.Bitboard.Remove(move.Piece, move.End)
+
 	if move.Castle {
 		switch {
 		// white king side
 		case move.Piece>>3 == 0 && move.End == 6:
 			c.EBE.Board[5] = EMPTY
 			c.EBE.Board[7] = WHITE | ROOK
+
+			c.Bitboard.Remove(5, WHITE|ROOK)
+			c.Bitboard.Add(7, WHITE|ROOK)
 		// white queen side
 		case move.Piece>>3 == 0 && move.End == 2:
 			c.EBE.Board[3] = EMPTY
 			c.EBE.Board[0] = WHITE | ROOK
+
+			c.Bitboard.Remove(3, WHITE|ROOK)
+			c.Bitboard.Add(0, WHITE|ROOK)
 		// black king side
 		case move.Piece>>3 == 1 && move.End == 62:
 			c.EBE.Board[61] = EMPTY
-			c.EBE.Board[63] = WHITE | ROOK
+			c.EBE.Board[63] = BLACK | ROOK
+
+			c.Bitboard.Remove(61, BLACK|ROOK)
+			c.Bitboard.Add(63, BLACK|ROOK)
 		// black queen side
 		case move.Piece>>3 == 1 && move.End == 58:
 			c.EBE.Board[59] = EMPTY
 			c.EBE.Board[56] = WHITE | ROOK
+
+			c.Bitboard.Remove(59, BLACK|ROOK)
+			c.Bitboard.Add(56, BLACK|ROOK)
 		}
 	}
 
