@@ -20,12 +20,12 @@ var (
 )
 
 type EBE struct {
-	Board            EBEBoard
-	Active           int
-	CastlingRights   int
-	EnPassantTargets []int
-	Halfmoves        int
-	Moves            int
+	Board           EBEBoard
+	Active          int
+	CastlingRights  int
+	EnPassantTarget int
+	Halfmoves       int
+	Moves           int
 }
 
 type EBEBoard [64]int
@@ -45,12 +45,12 @@ func (b EBEBoard) String() string {
 
 func DefaultBoard() EBE {
 	return EBE{
-		Board:            StartingBoard,
-		Active:           WHITE,
-		CastlingRights:   0b1111,
-		EnPassantTargets: []int{},
-		Halfmoves:        0,
-		Moves:            1,
+		Board:           StartingBoard,
+		Active:          0b0,
+		CastlingRights:  0b1111,
+		EnPassantTarget: -1,
+		Halfmoves:       0,
+		Moves:           1,
 	}
 }
 
@@ -88,7 +88,7 @@ func (b *EBE) ToFEN() string {
 	fen = fen[:len(fen)-1]
 
 	fen += " "
-	if b.Active == WHITE {
+	if b.Active == 0 {
 		fen += "w "
 	} else {
 		fen += "b "
@@ -98,12 +98,10 @@ func (b *EBE) ToFEN() string {
 
 	fen += " "
 
-	if len(b.EnPassantTargets) == 0 {
+	if b.EnPassantTarget == -1 {
 		fen += "-"
 	} else {
-		for _, target := range b.EnPassantTargets {
-			fen += int2algebraic(target)
-		}
+		fen += int2algebraic(b.EnPassantTarget)
 	}
 
 	fen = fmt.Sprintf("%s %d %d", fen, b.Halfmoves, b.Moves)
@@ -138,6 +136,8 @@ func (b *EBE) FromFEN(fen string) {
 	rank := 7
 	file := 0
 
+	b.Board = [64]int{}
+
 	placements := strings.Split(fenParts[0], "")
 	for i := range placements {
 		if placements[i] == "/" {
@@ -157,9 +157,9 @@ func (b *EBE) FromFEN(fen string) {
 	}
 
 	if fenParts[1] == "w" {
-		b.Active = WHITE
+		b.Active = 0b0
 	} else {
-		b.Active = BLACK
+		b.Active = 0b1
 	}
 
 	castlingChars := strings.Split(fenParts[2], "")
@@ -178,15 +178,11 @@ func (b *EBE) FromFEN(fen string) {
 		}
 	}
 
-	enPassantChars := fenParts[3]
-	readPos := 0
-	for readPos < len(enPassantChars) {
-		if enPassantChars[readPos] == '-' {
-			break
-		}
-
-		b.EnPassantTargets = append(b.EnPassantTargets, algebraic2Int([2]byte{enPassantChars[readPos], enPassantChars[readPos+1]}))
-		readPos += 2
+	enPassantPos := fenParts[3]
+	if enPassantPos == "-" {
+		b.EnPassantTarget = -1
+	} else {
+		b.EnPassantTarget = algebraic2Int(enPassantPos)
 	}
 
 	halfmoves, _ := strconv.Atoi(fenParts[4])

@@ -32,7 +32,8 @@ func TestTo2DString(t *testing.T) {
 
 func TestStartingBitboard(t *testing.T) {
 	ebe := DefaultBoard()
-	bitboard := FromEBE(ebe.Board)
+	bitboard := make(BitBoard)
+	bitboard.FromEBE(ebe.Board)
 
 	if bitboard.AllPieces() != starting {
 		t.Errorf(fmt.Sprintf("Expected 2d view doesn't match actual 2d view\nExpected:\n%s\n\nActual:\n%s", To2DString(starting), To2DString(bitboard.AllPieces())))

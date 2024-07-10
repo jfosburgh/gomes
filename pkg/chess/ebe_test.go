@@ -37,18 +37,18 @@ func EBEEqual(t *testing.T, expected, actual EBE) {
 		t.Errorf(fmt.Sprintf("Expected castling rights (%s) != actual castling rights (%s)", castlingRightsToString(expected.CastlingRights), castlingRightsToString(actual.CastlingRights)))
 	}
 
-	if !ArrayEqual(expected.EnPassantTargets, actual.EnPassantTargets) {
-		expectedString := ""
-		for _, pos := range expected.EnPassantTargets {
-			expectedString += int2algebraic(pos)
-		}
+	if expected.EnPassantTarget != actual.EnPassantTarget {
+		// expectedString := ""
+		// for _, pos := range expected.EnPassantTargets {
+		// 	expectedString += int2algebraic(pos)
+		// }
+		//
+		// actualString := ""
+		// for _, pos := range expected.EnPassantTargets {
+		// 	actualString += int2algebraic(pos)
+		// }
 
-		actualString := ""
-		for _, pos := range expected.EnPassantTargets {
-			actualString += int2algebraic(pos)
-		}
-
-		t.Errorf(fmt.Sprintf("Expected en passant targets (%s) != actual en passant targets (%s)", expectedString, actualString))
+		t.Errorf(fmt.Sprintf("Expected en passant targets (%v) != actual en passant targets (%v)", expected.EnPassantTarget, actual.EnPassantTarget))
 	}
 
 	if expected.Halfmoves != actual.Halfmoves {

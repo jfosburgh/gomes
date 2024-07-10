@@ -7,22 +7,19 @@ import (
 
 type BitBoard map[int]uint64
 
-func FromEBE(ebe EBEBoard) BitBoard {
-	bitboard := make(BitBoard, 0)
+func (b BitBoard) FromEBE(ebe EBEBoard) {
 	for piece := range piece2String {
 		if piece != EMPTY {
-			bitboard[piece] = 0
+			b[piece] = 0
 		}
 	}
 
 	for i := range ebe {
 		piece := ebe[i]
 		if piece != EMPTY {
-			bitboard[piece] = bitboard[piece] | (0b1 << i)
+			b[piece] = b[piece] | (0b1 << i)
 		}
 	}
-
-	return bitboard
 }
 
 func To2DString(board uint64) string {
