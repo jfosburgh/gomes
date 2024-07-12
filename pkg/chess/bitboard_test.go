@@ -58,8 +58,8 @@ func TestStartingBitboard(t *testing.T) {
 }
 
 func CorrectPawnMoves(t *testing.T, bitboard BitBoard, expectedAttacksWhite, expectedMovesWhite, expectedAttacksBlack, expectedMovesBlack uint64) {
-	actualAttacksWhite, actualMovesWhite := bitboard.PawnMoves(WHITE)
-	actualAttacksBlack, actualMovesBlack := bitboard.PawnMoves(BLACK)
+	actualAttacksWhite, _, actualMovesWhite := bitboard.PawnMoves(WHITE)
+	actualAttacksBlack, _, actualMovesBlack := bitboard.PawnMoves(BLACK)
 
 	t.Log(fmt.Sprintf("White Pawns:\n%s\n", To2DString(bitboard[WHITE|PAWN])))
 	t.Log(fmt.Sprintf("Black Pawns:\n%s\n", To2DString(bitboard[BLACK|PAWN])))
@@ -111,4 +111,22 @@ func TestPawnMoveGeneration(t *testing.T) {
 	bitboard.Remove(BLACK|PAWN, 55)
 
 	CorrectPawnMoves(t, bitboard, uint64(77309411328), uint64(40642150400), uint64(150994944), uint64(120315220852736))
+}
+
+func TestVerticalCross(t *testing.T) {
+	expected := uint64(144680345692733954)
+	actual := verticalCross(17)
+
+	if expected != actual {
+		t.Errorf("Expected does not match actual\nExpected:\n%s\n\nActual:\n%s", To2DString(expected), To2DString(actual))
+	}
+}
+
+func TestDiagonalCross(t *testing.T) {
+	expected := uint64(4620710844311930120)
+	actual := diagonalCross(17)
+
+	if expected != actual {
+		t.Errorf("Expected does not match actual\nExpected:\n%s\n\nActual:\n%s", To2DString(expected), To2DString(actual))
+	}
 }

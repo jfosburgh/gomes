@@ -52,7 +52,7 @@ func (b BitBoard) SidePieces(side int) uint64 {
 	return result
 }
 
-func (b BitBoard) PawnMoves(side int) (uint64, uint64) {
+func (b BitBoard) PawnMoves(side int) (uint64, uint64, uint64) {
 	enemyBitboard := b.SidePieces(((^side >> 3) & 0b1) << 3)
 	selfBitboard := b.SidePieces(side)
 	validTargets := enemyBitboard & (^selfBitboard)
@@ -77,7 +77,7 @@ func (b BitBoard) PawnMoves(side int) (uint64, uint64) {
 		doubleAdvance = doubleAdvanceable >> 16
 	}
 
-	return potentialAttacks & validTargets, (singleAdvance | doubleAdvance) & (^b.AllPieces())
+	return potentialAttacks & validTargets, potentialAttacks & (^validTargets), (singleAdvance | doubleAdvance) & (^b.AllPieces())
 }
 
 func (b BitBoard) Remove(piece, position int) {
@@ -99,4 +99,68 @@ func fileMask(file int) uint64 {
 
 func rankMask(rank int) uint64 {
 	return 0b11111111 << ((rank - 1) * 8)
+}
+
+func verticalCross(pos int) uint64 {
+	rank := pos/8 + 1
+	file := pos%8 + 1
+
+	return rankMask(rank) | fileMask(file)
+}
+
+func diagonalCross(pos int) uint64 {
+	res := uint64(0)
+
+	rank := pos / 8
+	file := pos % 8
+
+	r := rank
+	f := file
+	for {
+		if r < 0 || f < 0 {
+			break
+		}
+
+		res = res | (0b1 << (r*8 + f))
+		r -= 1
+		f -= 1
+	}
+
+	r = rank
+	f = file
+	for {
+		if r < 0 || f > 7 {
+			break
+		}
+
+		res = res | (0b1 << (r*8 + f))
+		r -= 1
+		f += 1
+	}
+
+	r = rank
+	f = file
+	for {
+		if r > 7 || f > 7 {
+			break
+		}
+
+		res = res | (0b1 << (r*8 + f))
+		r += 1
+		f += 1
+	}
+
+	r = rank
+	f = file
+	for {
+		if r > 7 || f < 0 {
+			break
+		}
+
+		res = res | (0b1 << (r*8 + f))
+		r += 1
+		f -= 1
+	}
+
+	return res
 }
