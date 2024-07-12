@@ -22,16 +22,6 @@ func (b BitBoard) FromEBE(ebe EBEBoard) {
 	}
 }
 
-func To2DString(board uint64) string {
-	oneD := fmt.Sprintf("%064b", board)
-	twoDArray := []string{}
-	for i := range 8 {
-		twoDArray = append(twoDArray, oneD[i*8:(i+1)*8])
-	}
-
-	return strings.Join(twoDArray, "\n")
-}
-
 func (b BitBoard) AllPieces() uint64 {
 	result := uint64(0)
 	for _, pieceBoard := range b {
@@ -86,6 +76,31 @@ func (b BitBoard) Remove(piece, position int) {
 
 func (b BitBoard) Add(piece, position int) {
 	b[piece] = b[piece] | (0b1 << position)
+}
+
+func To2DString(board uint64) string {
+	oneD := fmt.Sprintf("%064b", board)
+	twoDArray := []string{}
+	for i := range 8 {
+		twoDArray = append(twoDArray, oneD[i*8:(i+1)*8])
+	}
+
+	return strings.Join(twoDArray, "\n")
+}
+
+func toPieceLocations(bitboard uint64) []int {
+	locations := []int{}
+	shift := 0
+
+	for shift < 63 {
+		if (bitboard>>shift)&0b1 == 1 {
+			locations = append(locations, shift)
+		}
+
+		shift += 1
+	}
+
+	return locations
 }
 
 func fileMask(file int) uint64 {

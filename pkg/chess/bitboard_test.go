@@ -130,3 +130,16 @@ func TestDiagonalCross(t *testing.T) {
 		t.Errorf("Expected does not match actual\nExpected:\n%s\n\nActual:\n%s", To2DString(expected), To2DString(actual))
 	}
 }
+
+func TestToPieceLocations(t *testing.T) {
+	ebe := DefaultBoard()
+	bitboard := make(BitBoard)
+	bitboard.FromEBE(ebe.Board)
+
+	expected := []int{1, 6}
+	actual := toPieceLocations(bitboard[WHITE|KNIGHT])
+
+	if !ArrayEqual(expected, actual) {
+		t.Errorf("Expected locations (%+v) != actual locations (%+v) for pieces:\n%s", expected, actual, To2DString(bitboard[WHITE|KNIGHT]))
+	}
+}
