@@ -248,11 +248,19 @@ func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 						})
 					}
 				} else {
+					captured := c.EBE.Board[attackLoc]
+					if attackLoc == c.EBE.EnPassantTarget {
+						if side == WHITE {
+							captured = c.EBE.Board[attackLoc-8]
+						} else {
+							captured = c.EBE.Board[attackLoc-8]
+						}
+					}
 					moves = append(moves, Move{
 						Piece:   side | PAWN,
 						Start:   attackLoc + attackOrigin,
 						End:     attackLoc,
-						Capture: c.EBE.Board[attackLoc],
+						Capture: captured,
 
 						Halfmoves:       c.EBE.Halfmoves,
 						CastlingRights:  c.EBE.CastlingRights,
@@ -320,7 +328,19 @@ func (c *ChessGame) MakeMove(move Move) {
 
 	if move.Capture != 0 {
 		c.Captured = append(c.Captured, move.Capture)
-		c.Bitboard.Remove(move.Capture, move.End)
+		if move.EnPassantTarget == move.End {
+			if c.EBE.Active == 0 {
+				// fmt.Printf("capturing en passant target at %d\n", move.End-8)
+				c.EBE.Board[move.End-8] = EMPTY
+				c.Bitboard.Remove(move.Capture, move.End-8)
+			} else {
+				// fmt.Printf("capturing en passant target at %d\n", move.End+8)
+				c.EBE.Board[move.End+8] = EMPTY
+				c.Bitboard.Remove(move.Capture, move.End+8)
+			}
+		} else {
+			c.Bitboard.Remove(move.Capture, move.End)
+		}
 	}
 
 	if move.Promotion != 0 {
@@ -449,8 +469,20 @@ func (c *ChessGame) UnmakeMove(move Move) {
 	}
 
 	if move.Capture != 0 {
-		c.EBE.Board[move.End] = move.Capture
-		c.Bitboard.Add(move.Capture, move.End)
+		if move.End == move.EnPassantTarget {
+			if c.EBE.Active == 1 {
+				c.EBE.Board[move.End-8] = move.Capture
+				c.Bitboard.Add(move.Capture, move.End-8)
+				// fmt.Printf("replacing en passant target at %d\n", move.End-8)
+			} else {
+				c.EBE.Board[move.End+8] = move.Capture
+				c.Bitboard.Add(move.Capture, move.End+8)
+				// fmt.Printf("replacing en passant target at %d\n", move.End+8)
+			}
+		} else {
+			c.EBE.Board[move.End] = move.Capture
+			c.Bitboard.Add(move.Capture, move.End)
+		}
 		c.Captured = c.Captured[:len(c.Captured)-1]
 	}
 
