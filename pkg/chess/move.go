@@ -202,11 +202,13 @@ func (c *ChessGame) GeneratePseudoLegalKnight(side int) []Move {
 
 func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 	// fmt.Printf("Generating pawn moves for side %d\nCurrent Board:\n%s\n", side, c.EBE.Board)
+
 	moves := []Move{}
 	pawnThreatens, pawnMoves := c.Bitboard.PawnMoves(side)
 	pawnAttacks := pawnThreatens & c.Bitboard.SidePieces(enemy(side))
 	if c.EBE.EnPassantTarget != -1 {
-		pawnAttacks = pawnAttacks | (pawnAttacks & (0b1 << c.EBE.EnPassantTarget))
+		// fmt.Printf("adding en passant target at %s\n", int2algebraic(c.EBE.EnPassantTarget))
+		pawnAttacks = pawnAttacks | (pawnThreatens & (0b1 << c.EBE.EnPassantTarget))
 	}
 	// fmt.Printf("Pawn moves:\n%s\n", To2DString(pawnMoves))
 	// fmt.Printf("Pawn attacks:\n%s\n", To2DString(pawnAttacks))

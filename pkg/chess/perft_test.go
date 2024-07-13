@@ -6,8 +6,8 @@ func TestStartingMoves(t *testing.T) {
 	expectedCounts := []int{1, 20, 400, 8902, 197281, 4865609}
 
 	c := NewGame()
-	// expectedCounts = []int{1, 27, 515}
-	// c.SetStateFromFEN("rnbqkbnr/ppppppp1/7p/8/8/3P4/PPP1PPPP/RNBQKBNR w KQkq - 0 1")
+	// expectedCounts = []int{1, 23}
+	// c.SetStateFromFEN("rnbqkb1r/p1pppppp/5n2/Pp6/8/8/1PPPPPPP/RNBQKBNR w KQkq b6 0 1")
 
 	for depth, expected := range expectedCounts {
 		actual, results := c.Perft(depth, depth)
