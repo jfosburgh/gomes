@@ -93,6 +93,18 @@ func CorrectKnightMoves(t *testing.T, b BitBoard, side int, expectedCaptures, ex
 	}
 }
 
+func CorrectKingMoves(t *testing.T, b BitBoard, side int, expectedCaptures, expectedThreatens uint64) {
+	actualCaptures, actualThreatens := b.KingMoves(side)
+
+	if actualCaptures != expectedCaptures {
+		t.Errorf("Expected captures != actual captures for side %d\nExpected:\n%s\n\nActual:%s\n", side, To2DString(expectedCaptures), To2DString(actualCaptures))
+	}
+
+	if actualThreatens != expectedThreatens {
+		t.Errorf("Expected threatens != actual threatens for side %d\nExpected:\n%s\n\nActual:%s\n", side, To2DString(expectedThreatens), To2DString(actualThreatens))
+	}
+}
+
 func TestPawnMoveGeneration(t *testing.T) {
 	ebe := DefaultBoard()
 	bitboard := make(BitBoard)
@@ -142,6 +154,25 @@ func TestKnightMoveGeneration(t *testing.T) {
 
 	CorrectKnightMoves(t, bitboard, WHITE, expectedCaptures, expectedThreatensWhite)
 	CorrectKnightMoves(t, bitboard, BLACK, expectedCaptures, expectedThreatensBlack)
+}
+
+func TestKingMoveGeneration(t *testing.T) {
+	bitboard := make(BitBoard)
+	bitboard[WHITE|KING] = uint64(0b00001000)
+
+	expectedThreatens := uint64(7188)
+	expectedCaptures := uint64(0)
+
+	CorrectKingMoves(t, bitboard, WHITE, expectedCaptures, expectedThreatens)
+
+	ebe := DefaultBoard()
+	bitboard.FromEBE(ebe.Board)
+
+	expectedThreatensWhite := uint64(0)
+	expectedThreatensBlack := uint64(0)
+
+	CorrectKingMoves(t, bitboard, WHITE, expectedCaptures, expectedThreatensWhite)
+	CorrectKingMoves(t, bitboard, BLACK, expectedCaptures, expectedThreatensBlack)
 }
 
 func TestVerticalCross(t *testing.T) {

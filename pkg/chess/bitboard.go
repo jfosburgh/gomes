@@ -95,6 +95,25 @@ func (b BitBoard) KnightMoves(side int) (uint64, uint64) {
 	return moves & enemyBitboard, moves & (^enemyBitboard)
 }
 
+func (b BitBoard) KingMoves(side int) (uint64, uint64) {
+	enemyBitboard := b.SidePieces(((^side >> 3) & 0b1) << 3)
+	selfBitboard := b.SidePieces(side)
+
+	moves := uint64(0)
+	moves = moves | ((b[KING|side] & (^rankMask(8))) << NORTH)
+	moves = moves | ((b[KING|side] & (^rankMask(1))) >> NORTH)
+	moves = moves | ((b[KING|side] & (^fileMask(8))) << EAST)
+	moves = moves | ((b[KING|side] & (^fileMask(1))) >> EAST)
+	moves = moves | ((b[KING|side] & (^(rankMask(8) | fileMask(8)))) << NORTHEAST)
+	moves = moves | ((b[KING|side] & (^(rankMask(1) | fileMask(8)))) >> NORTHWEST)
+	moves = moves | ((b[KING|side] & (^(rankMask(8) | fileMask(1)))) << NORTHWEST)
+	moves = moves | ((b[KING|side] & (^(rankMask(1) | fileMask(1)))) >> NORTHEAST)
+
+	moves = moves & (^selfBitboard)
+
+	return moves & enemyBitboard, moves & (^enemyBitboard)
+}
+
 func (b BitBoard) Remove(piece, position int) {
 	b[piece] = b[piece] & (^(0b1 << position))
 }
