@@ -42,8 +42,7 @@ func (b BitBoard) SidePieces(side int) uint64 {
 	return result
 }
 
-func (b BitBoard) PawnMoves(side int) (uint64, uint64, uint64) {
-	enemyBitboard := b.SidePieces(((^side >> 3) & 0b1) << 3)
+func (b BitBoard) PawnMoves(side int) (uint64, uint64) {
 	selfBitboard := b.SidePieces(side)
 
 	potentialAttacks := uint64(0)
@@ -66,11 +65,10 @@ func (b BitBoard) PawnMoves(side int) (uint64, uint64, uint64) {
 		doubleAdvance = doubleAdvanceable >> 16
 	}
 
-	return potentialAttacks & enemyBitboard, potentialAttacks & (^(enemyBitboard | selfBitboard)), (singleAdvance | doubleAdvance) & (^b.AllPieces())
+	return potentialAttacks & (^selfBitboard), (singleAdvance | doubleAdvance) & (^b.AllPieces())
 }
 
-func (b BitBoard) KnightMoves(side int) (uint64, uint64) {
-	enemyBitboard := b.SidePieces(((^side >> 3) & 0b1) << 3)
+func (b BitBoard) KnightMoves(side int) uint64 {
 	selfBitboard := b.SidePieces(side)
 
 	moves := uint64(0)
@@ -92,11 +90,10 @@ func (b BitBoard) KnightMoves(side int) (uint64, uint64) {
 
 	moves = moves & (^selfBitboard)
 
-	return moves & enemyBitboard, moves & (^enemyBitboard)
+	return moves
 }
 
-func (b BitBoard) KingMoves(side int) (uint64, uint64) {
-	enemyBitboard := b.SidePieces(((^side >> 3) & 0b1) << 3)
+func (b BitBoard) KingMoves(side int) uint64 {
 	selfBitboard := b.SidePieces(side)
 
 	moves := uint64(0)
@@ -111,7 +108,52 @@ func (b BitBoard) KingMoves(side int) (uint64, uint64) {
 
 	moves = moves & (^selfBitboard)
 
-	return moves & enemyBitboard, moves & (^enemyBitboard)
+	return moves
+}
+
+func (b BitBoard) RookMoves(side int) uint64 {
+	enemyBitboard := b.SidePieces(((^side >> 3) & 0b1) << 3)
+	selfBitboard := b.SidePieces(side)
+
+	moves := uint64(0)
+	locs := toPieceLocations(b[side|ROOK])
+	for _, loc := range locs {
+		moves = moves | verticalCrossMasked(loc, (enemyBitboard|selfBitboard)&(^(0b1<<loc)))
+	}
+
+	moves = moves & (^selfBitboard)
+
+	return moves
+}
+
+func (b BitBoard) BishopMoves(side int) uint64 {
+	enemyBitboard := b.SidePieces(((^side >> 3) & 0b1) << 3)
+	selfBitboard := b.SidePieces(side)
+
+	moves := uint64(0)
+	locs := toPieceLocations(b[side|BISHOP])
+	for _, loc := range locs {
+		moves = moves | diagonalCrossMasked(loc, (enemyBitboard|selfBitboard)&(^(0b1<<loc)))
+	}
+
+	moves = moves & (^selfBitboard)
+
+	return moves
+}
+
+func (b BitBoard) QueenMoves(side int) uint64 {
+	enemyBitboard := b.SidePieces(((^side >> 3) & 0b1) << 3)
+	selfBitboard := b.SidePieces(side)
+
+	moves := uint64(0)
+	locs := toPieceLocations(b[side|QUEEN])
+	for _, loc := range locs {
+		moves = moves | diagonalCrossMasked(loc, (enemyBitboard|selfBitboard)&(^(0b1<<loc))) | verticalCrossMasked(loc, (enemyBitboard|selfBitboard)&(^(0b1<<loc)))
+	}
+
+	moves = moves & (^selfBitboard)
+
+	return moves
 }
 
 func (b BitBoard) Remove(piece, position int) {
@@ -126,7 +168,11 @@ func To2DString(board uint64) string {
 	oneD := fmt.Sprintf("%064b", board)
 	twoDArray := []string{}
 	for i := range 8 {
-		twoDArray = append(twoDArray, oneD[i*8:(i+1)*8])
+		row := ""
+		for j := (i+1)*8 - 1; j >= i*8; j-- {
+			row += string(oneD[j])
+		}
+		twoDArray = append(twoDArray, row)
 	}
 
 	return strings.Join(twoDArray, "\n")
@@ -165,6 +211,54 @@ func verticalCross(pos int) uint64 {
 	file := pos%8 + 1
 
 	return rankMask(rank) | fileMask(file)
+}
+
+func verticalCrossMasked(pos int, pieces uint64) uint64 {
+	rank := pos / 8
+	file := pos % 8
+
+	res := uint64(0)
+	r, f := rank, file
+	for {
+		res = res | (0b1 << (r*8 + f))
+		r += 1
+
+		if r > 7 || (pieces>>((r-1)*8+f)&0b1 == 1) {
+			break
+		}
+	}
+
+	r, f = rank, file
+	for {
+		res = res | (0b1 << (r*8 + f))
+		r -= 1
+
+		if r < 0 || (pieces>>((r+1)*8+f)&0b1 == 1) {
+			break
+		}
+	}
+
+	r, f = rank, file
+	for {
+		res = res | (0b1 << (r*8 + f))
+		f += 1
+
+		if f > 7 || (pieces>>(r*8+f-1)&0b1 == 1) {
+			break
+		}
+	}
+
+	r, f = rank, file
+	for {
+		res = res | (0b1 << (r*8 + f))
+		f -= 1
+
+		if f < 0 || (pieces>>(r*8+f+1)&0b1 == 1) {
+			break
+		}
+	}
+
+	return res
 }
 
 func diagonalCross(pos int) uint64 {
@@ -219,6 +313,63 @@ func diagonalCross(pos int) uint64 {
 		res = res | (0b1 << (r*8 + f))
 		r += 1
 		f -= 1
+	}
+
+	return res
+}
+
+func diagonalCrossMasked(pos int, pieces uint64) uint64 {
+	res := uint64(0)
+
+	rank := pos / 8
+	file := pos % 8
+
+	r := rank
+	f := file
+	for {
+		res = res | (0b1 << (r*8 + f))
+		r -= 1
+		f -= 1
+
+		if r < 0 || f < 0 || (pieces>>((r+1)*8+f+1)&0b1 == 1) {
+			break
+		}
+	}
+
+	r = rank
+	f = file
+	for {
+		res = res | (0b1 << (r*8 + f))
+		r -= 1
+		f += 1
+
+		if r < 0 || f > 7 || (pieces>>((r+1)*8+f-1)&0b1 == 1) {
+			break
+		}
+	}
+
+	r = rank
+	f = file
+	for {
+		res = res | (0b1 << (r*8 + f))
+		r += 1
+		f += 1
+
+		if r > 7 || f > 7 || (pieces>>((r-1)*8+f-1)&0b1 == 1) {
+			break
+		}
+	}
+
+	r = rank
+	f = file
+	for {
+		res = res | (0b1 << (r*8 + f))
+		r += 1
+		f -= 1
+
+		if r > 7 || f < 0 || (pieces>>((r-1)*8+f+1)&0b1 == 1) {
+			break
+		}
 	}
 
 	return res
