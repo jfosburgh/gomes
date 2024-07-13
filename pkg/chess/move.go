@@ -280,10 +280,10 @@ func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 	// fmt.Printf("generating moves at locations %+v\n", moveLocs)
 	for _, moveLoc := range moveLocs {
 		for _, moveOrigin := range moveOrigins {
-			if moveOrigin == SOUTH+SOUTH && moveLoc/8 != 3 {
+			if moveOrigin == SOUTH+SOUTH && (moveLoc/8 != 3 || c.EBE.Board[moveLoc+SOUTH] != EMPTY) {
 				continue
 			}
-			if moveOrigin == NORTH+NORTH && moveLoc/8 != 4 {
+			if moveOrigin == NORTH+NORTH && (moveLoc/8 != 4 || c.EBE.Board[moveLoc+NORTH] != EMPTY) {
 				continue
 			}
 			if c.EBE.Board[moveLoc+moveOrigin] == side|PAWN {
