@@ -72,6 +72,17 @@ var (
 		"K": WHITE | KING,
 		" ": EMPTY,
 	}
+
+	knightDirections = [8]int{
+		NORTH + NORTHEAST,
+		NORTH + NORTHWEST,
+		SOUTH + SOUTHEAST,
+		SOUTH + SOUTHWEST,
+		EAST + NORTHEAST,
+		EAST + SOUTHEAST,
+		WEST + NORTHWEST,
+		WEST + SOUTHWEST,
+	}
 )
 
 func algebraic2Int(pos string) int {
@@ -83,7 +94,7 @@ func algebraic2Int(pos string) int {
 
 func int2algebraic(pos int) string {
 	rank := pos/8 + 1
-	file := rank%8 - 1
+	file := pos % 8
 
 	file = 'a' + file
 	return fmt.Sprintf("%c%d", file, rank)
