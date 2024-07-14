@@ -64,9 +64,6 @@ func CorrectPawnMoves(t *testing.T, bitboard BitBoard, expectedAttacksWhite, exp
 	actualAttacksWhite = actualAttacksWhite & bitboard.SidePieces(BLACK)
 	actualAttacksBlack = actualAttacksBlack & bitboard.SidePieces(WHITE)
 
-	t.Log(fmt.Sprintf("White Pawns:\n%s\n", To2DString(bitboard[WHITE|PAWN])))
-	t.Log(fmt.Sprintf("Black Pawns:\n%s\n", To2DString(bitboard[BLACK|PAWN])))
-
 	if expectedAttacksWhite != actualAttacksWhite {
 		t.Errorf("Expected pawn attacks for white do not match actual attacks\nExpected:\n%s\n\nActual:\n%s", To2DString(expectedAttacksWhite), To2DString(actualAttacksWhite))
 	}
@@ -121,12 +118,17 @@ func TestPawnMoveGeneration(t *testing.T) {
 	bitboard.Add(BLACK|PAWN, 39)
 	bitboard.Remove(BLACK|PAWN, 55)
 
+	bitboard.UpdateSide(WHITE)
+	bitboard.UpdateSide(BLACK)
+
 	CorrectPawnMoves(t, bitboard, uint64(77309411328), uint64(40642150400), uint64(150994944), uint64(120315220852736))
 }
 
 func TestKnightMoveGeneration(t *testing.T) {
 	bitboard := make(BitBoard)
 	bitboard[WHITE|KNIGHT] = uint64(0b01000010)
+	bitboard.UpdateSide(WHITE)
+	bitboard.UpdateSide(BLACK)
 
 	expectedThreatens := uint64(10819584)
 	expectedCaptures := uint64(0)
@@ -146,6 +148,8 @@ func TestKnightMoveGeneration(t *testing.T) {
 func TestKingMoveGeneration(t *testing.T) {
 	bitboard := make(BitBoard)
 	bitboard[WHITE|KING] = uint64(0b00001000)
+	bitboard.UpdateSide(WHITE)
+	bitboard.UpdateSide(BLACK)
 
 	expectedThreatens := uint64(7188)
 	expectedCaptures := uint64(0)
@@ -165,6 +169,8 @@ func TestKingMoveGeneration(t *testing.T) {
 func TestRookMoveGeneration(t *testing.T) {
 	bitboard := make(BitBoard)
 	bitboard[WHITE|ROOK] = uint64(0b10000000)
+	bitboard.UpdateSide(WHITE)
+	bitboard.UpdateSide(BLACK)
 
 	expected := verticalCross(7) & (^bitboard[WHITE|ROOK])
 	CorrectMoves(t, bitboard, WHITE, expected, bitboard.RookMoves)
@@ -179,6 +185,8 @@ func TestRookMoveGeneration(t *testing.T) {
 func TestBishopMoveGeneration(t *testing.T) {
 	bitboard := make(BitBoard)
 	bitboard[WHITE|BISHOP] = uint64(0b00100000)
+	bitboard.UpdateSide(WHITE)
+	bitboard.UpdateSide(BLACK)
 
 	expected := diagonalCross(5) & (^bitboard[WHITE|BISHOP])
 	CorrectMoves(t, bitboard, WHITE, expected, bitboard.BishopMoves)
@@ -193,6 +201,8 @@ func TestBishopMoveGeneration(t *testing.T) {
 func TestQueenMoveGeneration(t *testing.T) {
 	bitboard := make(BitBoard)
 	bitboard[WHITE|QUEEN] = uint64(0b00001000)
+	bitboard.UpdateSide(WHITE)
+	bitboard.UpdateSide(BLACK)
 
 	expected := (diagonalCross(3) | verticalCross(3)) & (^bitboard[WHITE|QUEEN])
 	CorrectMoves(t, bitboard, WHITE, expected, bitboard.QueenMoves)

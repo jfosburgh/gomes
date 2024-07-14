@@ -2,6 +2,7 @@ package chess
 
 import (
 	"fmt"
+	"math/bits"
 	"strings"
 )
 
@@ -20,26 +21,22 @@ func (b BitBoard) FromEBE(ebe EBEBoard) {
 			b[piece] = b[piece] | (0b1 << i)
 		}
 	}
+
+	b.UpdateSide(WHITE)
+	b.UpdateSide(BLACK)
+}
+
+func (b BitBoard) UpdateSide(side int) {
+	pieces := b.SidePieces(side)
+	b[side] = pieces
 }
 
 func (b BitBoard) AllPieces() uint64 {
-	result := uint64(0)
-	for _, pieceBoard := range b {
-		result = result | pieceBoard
-	}
-
-	return result
+	return b[WHITE] | b[BLACK]
 }
 
 func (b BitBoard) SidePieces(side int) uint64 {
-	result := uint64(0)
-	for piece, pieceBoard := range b {
-		if (piece >> 3) == (side >> 3) {
-			result = result | pieceBoard
-		}
-	}
-
-	return result
+	return b[side|PAWN] | b[side|ROOK] | b[side|KNIGHT] | b[side|BISHOP] | b[side|QUEEN] | b[side|KING]
 }
 
 func (b BitBoard) SideThreatens(side int) uint64 {
@@ -58,40 +55,40 @@ func (b BitBoard) InCheck(side int) bool {
 }
 
 func (b BitBoard) PawnMoves(side int) (uint64, uint64) {
-	selfBitboard := b.SidePieces(side)
+	selfBitboard := b[side]
+	pawns := b[side|PAWN]
+	allPieces := b.AllPieces()
+
+	if side != WHITE {
+		selfBitboard = rotate180(selfBitboard)
+		pawns = rotate180(pawns)
+		allPieces = rotate180(allPieces)
+	}
 
 	potentialAttacks := uint64(0)
-	if side == WHITE {
-		potentialAttacks = (^fileMask(1) & b[side|PAWN]) << NORTHWEST
-		potentialAttacks = potentialAttacks | ((^fileMask(8) & b[side|PAWN]) << NORTHEAST)
-	} else {
-		potentialAttacks = (^fileMask(1) & b[side|PAWN]) >> NORTHEAST
-		potentialAttacks = potentialAttacks | ((^fileMask(8) & b[side|PAWN]) >> NORTHWEST)
-	}
+	potentialAttacks = (^fileMask(1) & pawns) << NORTHWEST
+	potentialAttacks = potentialAttacks | ((^fileMask(8) & pawns) << NORTHEAST)
 
 	var singleAdvance, doubleAdvance uint64
-	pawns := b[side|PAWN]
 	doubleAdvanceable := pawns & (rankMask(2) | rankMask(7))
-	allPieces := b.AllPieces()
-	if side == WHITE {
-		singleAdvance = pawns << 8
-		doubleAdvance = (doubleAdvanceable << 8 & (^allPieces)) << 8
-	} else {
-		singleAdvance = pawns >> 8
-		doubleAdvance = (doubleAdvanceable >> 8 & (^allPieces)) >> 8
-	}
 
+	singleAdvance = pawns << 8
+	doubleAdvance = (doubleAdvanceable << 8 & (^allPieces)) << 8
+
+	if side != WHITE {
+		return rotate180(potentialAttacks & (^selfBitboard)), rotate180((singleAdvance | doubleAdvance) & (^allPieces))
+	}
 	return potentialAttacks & (^selfBitboard), (singleAdvance | doubleAdvance) & (^allPieces)
 }
 
 func (b BitBoard) KnightMoves(side int) uint64 {
-	selfBitboard := b.SidePieces(side)
+	selfBitboard := b[side]
 
 	return getKnightMoves(b[KNIGHT|side]) & (^selfBitboard)
 }
 
 func (b BitBoard) KingMoves(side int) uint64 {
-	selfBitboard := b.SidePieces(side)
+	selfBitboard := b[side]
 
 	moves := uint64(0)
 	moves = moves | ((b[KING|side] & (^rankMask(8))) << NORTH)
@@ -109,8 +106,8 @@ func (b BitBoard) KingMoves(side int) uint64 {
 }
 
 func (b BitBoard) RookMoves(side int) uint64 {
-	enemyBitboard := b.SidePieces(enemy(side))
-	selfBitboard := b.SidePieces(side)
+	enemyBitboard := b[enemy(side)]
+	selfBitboard := b[side]
 
 	moves := uint64(0)
 	locs := toPieceLocations(b[side|ROOK])
@@ -124,8 +121,8 @@ func (b BitBoard) RookMoves(side int) uint64 {
 }
 
 func (b BitBoard) BishopMoves(side int) uint64 {
-	enemyBitboard := b.SidePieces(((^side >> 3) & 0b1) << 3)
-	selfBitboard := b.SidePieces(side)
+	enemyBitboard := b[enemy(side)]
+	selfBitboard := b[side]
 
 	moves := uint64(0)
 	locs := toPieceLocations(b[side|BISHOP])
@@ -139,8 +136,8 @@ func (b BitBoard) BishopMoves(side int) uint64 {
 }
 
 func (b BitBoard) QueenMoves(side int) uint64 {
-	enemyBitboard := b.SidePieces(((^side >> 3) & 0b1) << 3)
-	selfBitboard := b.SidePieces(side)
+	enemyBitboard := b[enemy(side)]
+	selfBitboard := b[side]
 
 	moves := uint64(0)
 	locs := toPieceLocations(b[side|QUEEN])
@@ -177,26 +174,73 @@ func To2DString(board uint64) string {
 
 func toPieceLocations(bitboard uint64) []int {
 	locations := []int{}
-	shift := 0
+	if bitboard == 0 {
+		return locations
+	}
 
-	for shift < 64 {
-		if (bitboard>>shift)&0b1 == 1 {
-			locations = append(locations, shift)
+	shifted := 0
+
+	for {
+		shift := bits.TrailingZeros64(bitboard)
+		if shift == 64 {
+			break
 		}
 
-		shift += 1
+		shifted += shift
+
+		locations = append(locations, shifted)
+		shifted += 1
+		bitboard = bitboard >> (shift + 1)
 	}
 
 	return locations
 }
 
-func fileMask(file int) uint64 {
-	res := uint64(0)
-	for i := range 8 {
-		res = res | 1<<(i*8+file-1)
-	}
+func mirrorHorizontal(x uint64) uint64 {
+	k1 := uint64(0x5555555555555555)
+	k2 := uint64(0x3333333333333333)
+	k4 := uint64(0x0f0f0f0f0f0f0f0f)
+	x = ((x >> 1) & k1) | ((x & k1) << 1)
+	x = ((x >> 2) & k2) | ((x & k2) << 2)
+	x = ((x >> 4) & k4) | ((x & k4) << 4)
+	return x
+}
 
-	return res
+func flipVertical(x uint64) uint64 {
+	return (x << 56) |
+		((x << 40) & uint64(0x00ff000000000000)) |
+		((x << 24) & uint64(0x0000ff0000000000)) |
+		((x << 8) & uint64(0x000000ff00000000)) |
+		((x >> 8) & uint64(0x00000000ff000000)) |
+		((x >> 24) & uint64(0x0000000000ff0000)) |
+		((x >> 40) & uint64(0x000000000000ff00)) |
+		(x >> 56)
+}
+
+func flipDiagA1H8(x uint64) uint64 {
+	t := uint64(0)
+	k1 := uint64(0x5500550055005500)
+	k2 := uint64(0x3333000033330000)
+	k4 := uint64(0x0f0f0f0f00000000)
+	t = k4 & (x ^ (x << 28))
+	x ^= t ^ (t >> 28)
+	t = k2 & (x ^ (x << 14))
+	x ^= t ^ (t >> 14)
+	t = k1 & (x ^ (x << 7))
+	x ^= t ^ (t >> 7)
+	return x
+}
+
+func rotate90Clockwise(x uint64) uint64 {
+	return flipVertical(flipDiagA1H8(x))
+}
+
+func rotate180(x uint64) uint64 {
+	return mirrorHorizontal(flipVertical(x))
+}
+
+func fileMask(file int) uint64 {
+	return rotate90Clockwise(rankMask(file))
 }
 
 func rankMask(rank int) uint64 {
@@ -258,58 +302,29 @@ func verticalCrossMasked(pos int, pieces uint64) uint64 {
 	return res
 }
 
+const (
+	diag     = uint64(9241421688590303745)
+	antiDiag = uint64(72624976668147840)
+)
+
 func diagonalCross(pos int) uint64 {
 	res := uint64(0)
 
 	rank := pos / 8
 	file := pos % 8
 
-	r := rank
-	f := file
-	for {
-		if r < 0 || f < 0 {
-			break
-		}
-
-		res = res | (0b1 << (r*8 + f))
-		r -= 1
-		f -= 1
+	onDiag := 8 * (rank - file)
+	if onDiag >= 0 {
+		res = diag << onDiag
+	} else {
+		res = diag >> (onDiag * -1)
 	}
 
-	r = rank
-	f = file
-	for {
-		if r < 0 || f > 7 {
-			break
-		}
-
-		res = res | (0b1 << (r*8 + f))
-		r -= 1
-		f += 1
-	}
-
-	r = rank
-	f = file
-	for {
-		if r > 7 || f > 7 {
-			break
-		}
-
-		res = res | (0b1 << (r*8 + f))
-		r += 1
-		f += 1
-	}
-
-	r = rank
-	f = file
-	for {
-		if r > 7 || f < 0 {
-			break
-		}
-
-		res = res | (0b1 << (r*8 + f))
-		r += 1
-		f -= 1
+	offDiag := 8 * (file - rank + (-7 + 2*rank))
+	if offDiag >= 0 {
+		res = res | antiDiag<<offDiag
+	} else {
+		res = res | antiDiag>>(offDiag*-1)
 	}
 
 	return res

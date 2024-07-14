@@ -402,7 +402,12 @@ func (c *ChessGame) MakeMove(move Move) {
 	if c.EBE.Active<<3 == BLACK {
 		c.EBE.Moves += 1
 	}
+
+	c.Bitboard.UpdateSide(c.EBE.Active << 3)
 	c.EBE.Active = ^c.EBE.Active & 0b1
+	if move.Capture != 0 {
+		c.Bitboard.UpdateSide(c.EBE.Active << 3)
+	}
 
 	if move.Capture == 0 && move.Piece&0b0111 != PAWN {
 		c.EBE.Halfmoves += 1
@@ -524,7 +529,12 @@ func (c *ChessGame) UnmakeMove(move Move) {
 	if c.EBE.Active<<3 == WHITE {
 		c.EBE.Moves -= 1
 	}
+
+	if move.Capture != 0 {
+		c.Bitboard.UpdateSide(c.EBE.Active << 3)
+	}
 	c.EBE.Active = ^c.EBE.Active & 0b01
+	c.Bitboard.UpdateSide(c.EBE.Active << 3)
 
 	// reset cached values
 	c.EBE.Halfmoves = move.Halfmoves

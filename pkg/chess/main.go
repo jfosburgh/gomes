@@ -45,8 +45,11 @@ func copyBoard(source EBEBoard) EBEBoard {
 	return board
 }
 
-func (c *ChessGame) Perft(depth, startDepth int) (int, string) {
-	start := time.Now()
+func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
+	start := time.Time{}
+	if depth == startDepth {
+		start = time.Now()
+	}
 	if depth == 0 {
 		return 1, ""
 	}
@@ -55,7 +58,7 @@ func (c *ChessGame) Perft(depth, startDepth int) (int, string) {
 
 	count := 0
 	moves := c.GeneratePseudoLegal()
-	if depth == startDepth {
+	if debug && depth == startDepth {
 		fmt.Printf("starting search with board state:\nActive - %d\nCastling Rights - %04b\n%s\n", c.EBE.Active, c.EBE.CastlingRights, c.EBE.Board)
 		for piece := range piece2String {
 			fmt.Printf("%s: %+v, ", piece2String[piece], toPieceLocations(c.Bitboard[piece]))
@@ -68,25 +71,29 @@ func (c *ChessGame) Perft(depth, startDepth int) (int, string) {
 		active := c.EBE.Active << 3
 
 		startingBitboard := make(BitBoard)
-		copyBitboard(c.Bitboard, startingBitboard)
-
 		startingBoard := EBE{}
-		startingBoard.Board = copyBoard(c.EBE.Board)
+		if debug {
+			copyBitboard(c.Bitboard, startingBitboard)
+
+			startingBoard.Board = copyBoard(c.EBE.Board)
+		}
 
 		c.MakeMove(move)
 		if !c.Bitboard.InCheck(active) {
-			c, _ := c.Perft(depth-1, startDepth)
+			c, _ := c.Perft(depth-1, startDepth, debug)
 			moveCount += c
 		}
 		c.UnmakeMove(move)
 
-		if startingBoard.Board != c.EBE.Board {
-			panic(fmt.Sprintf("board before move %s%s doesn't match board after\nBefore:\n%s\nAfter:\n%s", int2algebraic(move.Start), int2algebraic(move.End), startingBoard.Board, c.EBE.Board))
-		}
+		if debug {
+			if startingBoard.Board != c.EBE.Board {
+				panic(fmt.Sprintf("board before move %s%s doesn't match board after\nBefore:\n%s\nAfter:\n%s", int2algebraic(move.Start), int2algebraic(move.End), startingBoard.Board, c.EBE.Board))
+			}
 
-		for piece := range startingBitboard {
-			if startingBitboard[piece] != c.Bitboard[piece] {
-				panic(fmt.Sprintf("Piece board for %s is different after %s%s\nStarting\n%s\nEnding\n%s", piece2String[piece], int2algebraic(move.Start), int2algebraic(move.End), To2DString(startingBitboard[piece]), To2DString(c.Bitboard[piece])))
+			for piece := range startingBitboard {
+				if startingBitboard[piece] != c.Bitboard[piece] {
+					panic(fmt.Sprintf("Piece board for %s is different after %s%s\nStarting\n%s\nEnding\n%s", piece2String[piece], int2algebraic(move.Start), int2algebraic(move.End), To2DString(startingBitboard[piece]), To2DString(c.Bitboard[piece])))
+				}
 			}
 		}
 
@@ -96,14 +103,15 @@ func (c *ChessGame) Perft(depth, startDepth int) (int, string) {
 		}
 	}
 
-	if depth == startDepth {
+	if debug && depth == startDepth {
 		fmt.Printf("\nending search with board state:\nActive - %d\nCastling Rights - %04b\n%s\n", c.EBE.Active, c.EBE.CastlingRights, c.EBE.Board)
 		for piece := range piece2String {
 			fmt.Printf("%s: %+v, ", piece2String[piece], toPieceLocations(c.Bitboard[piece]))
 		}
+		fmt.Println()
 	}
 	if depth == startDepth {
-		fmt.Printf("\nperft evaluated to depth of %d in %dms\n", startDepth, time.Since(start).Milliseconds())
+		fmt.Printf("perft evaluated to depth of %d in %dms\n", startDepth, time.Since(start).Milliseconds())
 	}
 
 	return count, resultString
