@@ -1,7 +1,7 @@
 package chess
 
 import (
-	// "fmt"
+	"fmt"
 	"math"
 )
 
@@ -19,8 +19,12 @@ type Move struct {
 	EnPassantTarget int
 }
 
+func (m Move) String() string {
+	return fmt.Sprintf("%s%s", int2algebraic(m.Start), int2algebraic(m.End))
+}
+
 func (c *ChessGame) GeneratePseudoLegal() []Move {
-	// fmt.Printf("Generating moves for active player %d with board state\n%s\n", c.EBE.Active, c.EBE.Board)
+	// fmt.Printf("Generating moves for active player %d and castling rights %04b with board state\n%s\n", c.EBE.Active, c.EBE.CastlingRights, c.EBE.Board)
 	moves := []Move{}
 
 	side := c.EBE.Active << 3
@@ -54,13 +58,19 @@ func (c *ChessGame) GeneratePseudoLegalKing(side int) []Move {
 		})
 	}
 
+	if c.EBE.CastlingRights == 0 || c.Bitboard.InCheck(side) {
+		return moves
+	}
+
 	castlingRights := c.EBE.CastlingRights >> 2
 	if side == BLACK {
 		castlingRights = c.EBE.CastlingRights & 0b0011
 	}
 
+	threatened := c.Bitboard.SideThreatens(enemy(side))
+
 	// kingside
-	if castlingRights>>1 == 1 && c.EBE.Board[kingLoc+1] == EMPTY && c.EBE.Board[kingLoc+2] == EMPTY {
+	if castlingRights>>1 == 1 && c.EBE.Board[kingLoc+1] == EMPTY && c.EBE.Board[kingLoc+2] == EMPTY && threatened&((0b1<<(kingLoc+1))|(0b1<<(kingLoc+2))) == 0 {
 		moves = append(moves, Move{
 			Piece:  side | KING,
 			Start:  kingLoc,
@@ -74,7 +84,7 @@ func (c *ChessGame) GeneratePseudoLegalKing(side int) []Move {
 	}
 
 	// queenside
-	if castlingRights&0b01 == 1 && c.EBE.Board[kingLoc-1] == EMPTY && c.EBE.Board[kingLoc-2] == EMPTY && c.EBE.Board[kingLoc-3] == EMPTY {
+	if castlingRights&0b01 == 1 && c.EBE.Board[kingLoc-1] == EMPTY && c.EBE.Board[kingLoc-2] == EMPTY && c.EBE.Board[kingLoc-3] == EMPTY && threatened&((0b1<<(kingLoc-1))|(0b1<<(kingLoc-2))) == 0 {
 		moves = append(moves, Move{
 			Piece:  side | KING,
 			Start:  kingLoc,
@@ -240,7 +250,7 @@ func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 							Start:     attackLoc + attackOrigin,
 							End:       attackLoc,
 							Capture:   c.EBE.Board[attackLoc],
-							Promotion: promotion,
+							Promotion: promotion | side,
 
 							Halfmoves:       c.EBE.Halfmoves,
 							CastlingRights:  c.EBE.CastlingRights,
@@ -356,29 +366,29 @@ func (c *ChessGame) MakeMove(move Move) {
 			c.EBE.Board[7] = EMPTY
 			c.EBE.Board[5] = WHITE | ROOK
 
-			c.Bitboard.Remove(7, WHITE|ROOK)
-			c.Bitboard.Add(5, WHITE|ROOK)
+			c.Bitboard.Remove(WHITE|ROOK, 7)
+			c.Bitboard.Add(WHITE|ROOK, 5)
 		// white queen side
 		case move.Piece>>3 == 0 && move.End == 2:
 			c.EBE.Board[0] = EMPTY
 			c.EBE.Board[3] = WHITE | ROOK
 
-			c.Bitboard.Remove(0, WHITE|ROOK)
-			c.Bitboard.Add(3, WHITE|ROOK)
+			c.Bitboard.Remove(WHITE|ROOK, 0)
+			c.Bitboard.Add(WHITE|ROOK, 3)
 		// black king side
 		case move.Piece>>3 == 1 && move.End == 62:
 			c.EBE.Board[63] = EMPTY
 			c.EBE.Board[61] = BLACK | ROOK
 
-			c.Bitboard.Remove(63, BLACK|ROOK)
-			c.Bitboard.Add(61, BLACK|ROOK)
+			c.Bitboard.Remove(BLACK|ROOK, 63)
+			c.Bitboard.Add(BLACK|ROOK, 61)
 		// black queen side
 		case move.Piece>>3 == 1 && move.End == 58:
 			c.EBE.Board[56] = EMPTY
-			c.EBE.Board[59] = WHITE | ROOK
+			c.EBE.Board[59] = BLACK | ROOK
 
-			c.Bitboard.Remove(56, BLACK|ROOK)
-			c.Bitboard.Add(59, BLACK|ROOK)
+			c.Bitboard.Remove(BLACK|ROOK, 56)
+			c.Bitboard.Add(BLACK|ROOK, 59)
 		}
 	}
 
@@ -419,6 +429,22 @@ func (c *ChessGame) MakeMove(move Move) {
 		if move.Piece == BLACK|ROOK && move.Start == 56 {
 			c.EBE.CastlingRights = c.EBE.CastlingRights & 0b1110
 		}
+
+		if move.End == 7 {
+			c.EBE.CastlingRights = c.EBE.CastlingRights & 0b0111
+		}
+
+		if move.End == 0 {
+			c.EBE.CastlingRights = c.EBE.CastlingRights & 0b1011
+		}
+
+		if move.End == 56 {
+			c.EBE.CastlingRights = c.EBE.CastlingRights & 0b1110
+		}
+
+		if move.End == 63 {
+			c.EBE.CastlingRights = c.EBE.CastlingRights & 0b1101
+		}
 	}
 
 	if move.Piece&0b0111 == PAWN && math.Abs(float64(move.End)-float64(move.Start)) == 16 {
@@ -434,6 +460,9 @@ func (c *ChessGame) UnmakeMove(move Move) {
 
 	c.Bitboard.Add(move.Piece, move.Start)
 	c.Bitboard.Remove(move.Piece, move.End)
+	if move.Promotion != 0 {
+		c.Bitboard.Remove(move.Promotion, move.End)
+	}
 
 	if move.Castle {
 		switch {
@@ -442,29 +471,29 @@ func (c *ChessGame) UnmakeMove(move Move) {
 			c.EBE.Board[5] = EMPTY
 			c.EBE.Board[7] = WHITE | ROOK
 
-			c.Bitboard.Remove(5, WHITE|ROOK)
-			c.Bitboard.Add(7, WHITE|ROOK)
+			c.Bitboard.Remove(WHITE|ROOK, 5)
+			c.Bitboard.Add(WHITE|ROOK, 7)
 		// white queen side
 		case move.Piece>>3 == 0 && move.End == 2:
 			c.EBE.Board[3] = EMPTY
 			c.EBE.Board[0] = WHITE | ROOK
 
-			c.Bitboard.Remove(3, WHITE|ROOK)
-			c.Bitboard.Add(0, WHITE|ROOK)
+			c.Bitboard.Remove(WHITE|ROOK, 3)
+			c.Bitboard.Add(WHITE|ROOK, 0)
 		// black king side
 		case move.Piece>>3 == 1 && move.End == 62:
 			c.EBE.Board[61] = EMPTY
 			c.EBE.Board[63] = BLACK | ROOK
 
-			c.Bitboard.Remove(61, BLACK|ROOK)
-			c.Bitboard.Add(63, BLACK|ROOK)
+			c.Bitboard.Remove(BLACK|ROOK, 61)
+			c.Bitboard.Add(BLACK|ROOK, 63)
 		// black queen side
 		case move.Piece>>3 == 1 && move.End == 58:
 			c.EBE.Board[59] = EMPTY
-			c.EBE.Board[56] = WHITE | ROOK
+			c.EBE.Board[56] = BLACK | ROOK
 
-			c.Bitboard.Remove(59, BLACK|ROOK)
-			c.Bitboard.Add(56, BLACK|ROOK)
+			c.Bitboard.Remove(BLACK|ROOK, 59)
+			c.Bitboard.Add(BLACK|ROOK, 56)
 		}
 	}
 

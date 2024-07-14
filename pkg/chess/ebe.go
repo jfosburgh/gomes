@@ -163,6 +163,7 @@ func (b *EBE) FromFEN(fen string) {
 	}
 
 	castlingChars := strings.Split(fenParts[2], "")
+	b.CastlingRights = 0
 	for _, char := range castlingChars {
 		switch char {
 		case "-":
@@ -185,9 +186,13 @@ func (b *EBE) FromFEN(fen string) {
 		b.EnPassantTarget = algebraic2Int(enPassantPos)
 	}
 
-	halfmoves, _ := strconv.Atoi(fenParts[4])
-	b.Halfmoves = halfmoves
+	if len(fenParts) >= 5 {
+		halfmoves, _ := strconv.Atoi(fenParts[4])
+		b.Halfmoves = halfmoves
+	}
 
-	moves, _ := strconv.Atoi(fenParts[5])
-	b.Moves = moves
+	if len(fenParts) >= 6 {
+		moves, _ := strconv.Atoi(fenParts[5])
+		b.Moves = moves
+	}
 }
