@@ -20,7 +20,12 @@ type Move struct {
 }
 
 func (m Move) String() string {
-	return fmt.Sprintf("%s%s", int2algebraic(m.Start), int2algebraic(m.End))
+	s := fmt.Sprintf("%s%s", int2algebraic(m.Start), int2algebraic(m.End))
+	if m.Promotion != 0 {
+		s += piece2String[m.Promotion]
+	}
+
+	return s
 }
 
 func (c *ChessGame) GeneratePseudoLegal() []Move {
@@ -250,7 +255,7 @@ func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 							Start:     attackLoc + attackOrigin,
 							End:       attackLoc,
 							Capture:   c.EBE.Board[attackLoc],
-							Promotion: promotion | side,
+							Promotion: side | promotion,
 
 							Halfmoves:       c.EBE.Halfmoves,
 							CastlingRights:  c.EBE.CastlingRights,
@@ -303,7 +308,7 @@ func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 							Piece:     side | PAWN,
 							Start:     moveLoc + moveOrigin,
 							End:       moveLoc,
-							Promotion: promotion,
+							Promotion: side | promotion,
 
 							Halfmoves:       c.EBE.Halfmoves,
 							CastlingRights:  c.EBE.CastlingRights,

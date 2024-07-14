@@ -36,6 +36,15 @@ func copyBitboard(source, dest BitBoard) {
 	}
 }
 
+func copyBoard(source EBEBoard) EBEBoard {
+	board := EBEBoard{}
+	for i := range 64 {
+		board[i] = source[i]
+	}
+
+	return board
+}
+
 func (c *ChessGame) Perft(depth, startDepth int) (int, string) {
 	start := time.Now()
 	if depth == 0 {
@@ -62,7 +71,7 @@ func (c *ChessGame) Perft(depth, startDepth int) (int, string) {
 		copyBitboard(c.Bitboard, startingBitboard)
 
 		startingBoard := EBE{}
-		startingBoard.Board = c.EBE.Board
+		startingBoard.Board = copyBoard(c.EBE.Board)
 
 		c.MakeMove(move)
 		if !c.Bitboard.InCheck(active) {
@@ -83,7 +92,7 @@ func (c *ChessGame) Perft(depth, startDepth int) (int, string) {
 
 		count += moveCount
 		if depth == startDepth {
-			resultString += fmt.Sprintf("%s%s: %d\n", int2algebraic(move.Start), int2algebraic(move.End), moveCount)
+			resultString += fmt.Sprintf("%s: %d\n", move, moveCount)
 		}
 	}
 
