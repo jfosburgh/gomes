@@ -74,11 +74,17 @@ func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
 		startingBoard := EBE{}
 		if debug {
 			copyBitboard(c.Bitboard, startingBitboard)
-
 			startingBoard.Board = copyBoard(c.EBE.Board)
 		}
 
 		c.MakeMove(move)
+		middleBitboard := make(BitBoard)
+		middleBoard := EBE{}
+		if debug {
+			copyBitboard(c.Bitboard, middleBitboard)
+			middleBoard.Board = copyBoard(c.EBE.Board)
+			// fmt.Printf("Checking if %04b is in check with board state\n%s\n", active, c.EBE.Board)
+		}
 		if !c.Bitboard.InCheck(active) {
 			c, _ := c.Perft(depth-1, startDepth, debug)
 			moveCount += c
@@ -87,18 +93,18 @@ func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
 
 		if debug {
 			if startingBoard.Board != c.EBE.Board {
-				panic(fmt.Sprintf("board before move %s%s doesn't match board after\nBefore:\n%s\nAfter:\n%s", int2algebraic(move.Start), int2algebraic(move.End), startingBoard.Board, c.EBE.Board))
+				panic(fmt.Sprintf("board before move %s%s doesn't match board after\nBefore:\n%s\nDuring:\n%s\nAfter:\n%s", int2algebraic(move.Start), int2algebraic(move.End), startingBoard.Board, middleBoard.Board, c.EBE.Board))
 			}
 
 			for piece := range startingBitboard {
 				if startingBitboard[piece] != c.Bitboard[piece] {
-					panic(fmt.Sprintf("Piece board for %s is different after %s%s\nStarting\n%s\nEnding\n%s", piece2String[piece], int2algebraic(move.Start), int2algebraic(move.End), To2DString(startingBitboard[piece]), To2DString(c.Bitboard[piece])))
+					panic(fmt.Sprintf("Piece board for %s is different after %s%s\nStarting\n%s\nDuring\n%s\nEnding\n%s", piece2String[piece], int2algebraic(move.Start), int2algebraic(move.End), To2DString(startingBitboard[piece]), To2DString(middleBitboard[piece]), To2DString(c.Bitboard[piece])))
 				}
 			}
 		}
 
 		count += moveCount
-		if depth == startDepth {
+		if depth == startDepth && moveCount != 0 {
 			resultString += fmt.Sprintf("%s: %d\n", move, moveCount)
 		}
 	}

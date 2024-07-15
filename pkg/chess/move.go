@@ -107,11 +107,11 @@ func (c *ChessGame) GeneratePseudoLegalKing(side int) []Move {
 
 func (c *ChessGame) GeneratePseudoLegalQueen(side int) []Move {
 	moves := []Move{}
-
-	queenMoves := c.Bitboard.QueenMoves(side)
 	queenLocs := toPieceLocations(c.Bitboard[side|QUEEN])
+	enemyBoard, selfBoard := c.Bitboard[enemy(side)], c.Bitboard[side]
 
 	for _, queenLoc := range queenLocs {
+		queenMoves := getQueenMoves(enemyBoard, selfBoard, 0b1<<queenLoc)
 		pieceMoves := queenMoves & (verticalCross(queenLoc) | diagonalCross(queenLoc))
 		moveLocs := toPieceLocations(pieceMoves)
 
@@ -134,11 +134,11 @@ func (c *ChessGame) GeneratePseudoLegalQueen(side int) []Move {
 
 func (c *ChessGame) GeneratePseudoLegalBishop(side int) []Move {
 	moves := []Move{}
-
-	bishopMoves := c.Bitboard.BishopMoves(side)
 	bishopLocs := toPieceLocations(c.Bitboard[side|BISHOP])
+	enemyBoard, selfBoard := c.Bitboard[enemy(side)], c.Bitboard[side]
 
 	for _, bishopLoc := range bishopLocs {
+		bishopMoves := getBishopMoves(enemyBoard, selfBoard, 0b1<<bishopLoc)
 		pieceMoves := bishopMoves & diagonalCross(bishopLoc)
 		moveLocs := toPieceLocations(pieceMoves)
 
@@ -268,7 +268,7 @@ func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 						if side == WHITE {
 							captured = c.EBE.Board[attackLoc-8]
 						} else {
-							captured = c.EBE.Board[attackLoc-8]
+							captured = c.EBE.Board[attackLoc+8]
 						}
 					}
 					moves = append(moves, Move{
@@ -334,66 +334,67 @@ func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 	return moves
 }
 
+func (c *ChessGame) RemovePiece(piece, location int) {
+	c.EBE.Board[location] = EMPTY
+	c.Bitboard.Remove(piece, location)
+}
+
+func (c *ChessGame) PlacePiece(piece, location int) {
+	c.EBE.Board[location] = piece
+	c.Bitboard.Add(piece, location)
+}
+
+func (c *ChessGame) ReplacePiece(oldPiece, newPiece, location int) {
+	c.EBE.Board[location] = newPiece
+	c.Bitboard.Remove(oldPiece, location)
+	c.Bitboard.Add(newPiece, location)
+}
+
 func (c *ChessGame) MakeMove(move Move) {
-	c.EBE.Board[move.Start] = EMPTY
-	c.EBE.Board[move.End] = move.Piece
-
-	c.Bitboard.Add(move.Piece, move.End)
-	c.Bitboard.Remove(move.Piece, move.Start)
-
-	if move.Capture != 0 {
-		c.Captured = append(c.Captured, move.Capture)
-		if move.EnPassantTarget == move.End {
-			if c.EBE.Active == 0 {
-				// fmt.Printf("capturing en passant target at %d\n", move.End-8)
-				c.EBE.Board[move.End-8] = EMPTY
-				c.Bitboard.Remove(move.Capture, move.End-8)
-			} else {
-				// fmt.Printf("capturing en passant target at %d\n", move.End+8)
-				c.EBE.Board[move.End+8] = EMPTY
-				c.Bitboard.Remove(move.Capture, move.End+8)
-			}
-		} else {
-			c.Bitboard.Remove(move.Capture, move.End)
-		}
+	c.RemovePiece(move.Piece, move.Start)
+	pieceToPlace := move.Piece
+	if move.Promotion != 0 {
+		pieceToPlace = move.Promotion
 	}
 
-	if move.Promotion != 0 {
-		c.EBE.Board[move.End] = move.Promotion
-		c.Bitboard.Remove(move.Piece, move.End)
-		c.Bitboard.Add(move.Promotion, move.End)
+	if move.Capture == 0 {
+		c.PlacePiece(pieceToPlace, move.End)
+	} else {
+		c.Captured = append(c.Captured, move.Capture)
+		if move.EnPassantTarget == move.End {
+			c.PlacePiece(pieceToPlace, move.End)
+			if c.EBE.Active == 0 {
+				// fmt.Printf("capturing en passant target at %s in move %s with board state \n%s\n", int2algebraic(move.End-8), move, c.EBE.Board)
+				c.RemovePiece(move.Capture, move.End-8)
+				// fmt.Printf("final state:\n%s\n", c.EBE.Board)
+			} else {
+				// fmt.Printf("capturing en passant target at %s in move %s with board state \n%s\n", int2algebraic(move.End+8), move, c.EBE.Board)
+				c.RemovePiece(move.Capture, move.End+8)
+				// fmt.Printf("final state:\n%s\n", c.EBE.Board)
+			}
+		} else {
+			c.ReplacePiece(move.Capture, pieceToPlace, move.End)
+		}
 	}
 
 	if move.Castle {
 		switch {
 		// white king side
 		case move.Piece>>3 == 0 && move.End == 6:
-			c.EBE.Board[7] = EMPTY
-			c.EBE.Board[5] = WHITE | ROOK
-
-			c.Bitboard.Remove(WHITE|ROOK, 7)
-			c.Bitboard.Add(WHITE|ROOK, 5)
+			c.RemovePiece(WHITE|ROOK, 7)
+			c.PlacePiece(WHITE|ROOK, 5)
 		// white queen side
 		case move.Piece>>3 == 0 && move.End == 2:
-			c.EBE.Board[0] = EMPTY
-			c.EBE.Board[3] = WHITE | ROOK
-
-			c.Bitboard.Remove(WHITE|ROOK, 0)
-			c.Bitboard.Add(WHITE|ROOK, 3)
+			c.RemovePiece(WHITE|ROOK, 0)
+			c.PlacePiece(WHITE|ROOK, 3)
 		// black king side
 		case move.Piece>>3 == 1 && move.End == 62:
-			c.EBE.Board[63] = EMPTY
-			c.EBE.Board[61] = BLACK | ROOK
-
-			c.Bitboard.Remove(BLACK|ROOK, 63)
-			c.Bitboard.Add(BLACK|ROOK, 61)
+			c.RemovePiece(BLACK|ROOK, 63)
+			c.PlacePiece(BLACK|ROOK, 61)
 		// black queen side
 		case move.Piece>>3 == 1 && move.End == 58:
-			c.EBE.Board[56] = EMPTY
-			c.EBE.Board[59] = BLACK | ROOK
-
-			c.Bitboard.Remove(BLACK|ROOK, 56)
-			c.Bitboard.Add(BLACK|ROOK, 59)
+			c.RemovePiece(BLACK|ROOK, 56)
+			c.PlacePiece(BLACK|ROOK, 59)
 		}
 	}
 
@@ -465,64 +466,51 @@ func (c *ChessGame) MakeMove(move Move) {
 }
 
 func (c *ChessGame) UnmakeMove(move Move) {
-	c.EBE.Board[move.Start] = move.Piece
-	c.EBE.Board[move.End] = EMPTY
-
-	c.Bitboard.Add(move.Piece, move.Start)
-	c.Bitboard.Remove(move.Piece, move.End)
+	c.PlacePiece(move.Piece, move.Start)
+	pieceToRemove := move.Piece
 	if move.Promotion != 0 {
-		c.Bitboard.Remove(move.Promotion, move.End)
+		pieceToRemove = move.Promotion
+	}
+
+	if move.Capture == 0 {
+		c.RemovePiece(pieceToRemove, move.End)
+	} else {
+		if move.End == move.EnPassantTarget {
+			c.RemovePiece(pieceToRemove, move.End)
+			if c.EBE.Active == 1 {
+				// fmt.Printf("replacing en passant target at %s in move %s with board state \n%s\n", int2algebraic(move.End-8), move, c.EBE.Board)
+				c.PlacePiece(move.Capture, move.End-8)
+				// fmt.Printf("final state:\n%s\n", c.EBE.Board)
+			} else {
+				// fmt.Printf("replacing en passant target at %s in move %s with board state \n%s\n", int2algebraic(move.End+8), move, c.EBE.Board)
+				c.PlacePiece(move.Capture, move.End+8)
+				// fmt.Printf("final state:\n%s\n", c.EBE.Board)
+			}
+		} else {
+			c.ReplacePiece(pieceToRemove, move.Capture, move.End)
+		}
+		c.Captured = c.Captured[:len(c.Captured)-1]
 	}
 
 	if move.Castle {
 		switch {
 		// white king side
 		case move.Piece>>3 == 0 && move.End == 6:
-			c.EBE.Board[5] = EMPTY
-			c.EBE.Board[7] = WHITE | ROOK
-
-			c.Bitboard.Remove(WHITE|ROOK, 5)
-			c.Bitboard.Add(WHITE|ROOK, 7)
+			c.RemovePiece(WHITE|ROOK, 5)
+			c.PlacePiece(WHITE|ROOK, 7)
 		// white queen side
 		case move.Piece>>3 == 0 && move.End == 2:
-			c.EBE.Board[3] = EMPTY
-			c.EBE.Board[0] = WHITE | ROOK
-
-			c.Bitboard.Remove(WHITE|ROOK, 3)
-			c.Bitboard.Add(WHITE|ROOK, 0)
+			c.RemovePiece(WHITE|ROOK, 3)
+			c.PlacePiece(WHITE|ROOK, 0)
 		// black king side
 		case move.Piece>>3 == 1 && move.End == 62:
-			c.EBE.Board[61] = EMPTY
-			c.EBE.Board[63] = BLACK | ROOK
-
-			c.Bitboard.Remove(BLACK|ROOK, 61)
-			c.Bitboard.Add(BLACK|ROOK, 63)
+			c.RemovePiece(BLACK|ROOK, 61)
+			c.PlacePiece(BLACK|ROOK, 63)
 		// black queen side
 		case move.Piece>>3 == 1 && move.End == 58:
-			c.EBE.Board[59] = EMPTY
-			c.EBE.Board[56] = BLACK | ROOK
-
-			c.Bitboard.Remove(BLACK|ROOK, 59)
-			c.Bitboard.Add(BLACK|ROOK, 56)
+			c.RemovePiece(BLACK|ROOK, 59)
+			c.PlacePiece(BLACK|ROOK, 56)
 		}
-	}
-
-	if move.Capture != 0 {
-		if move.End == move.EnPassantTarget {
-			if c.EBE.Active == 1 {
-				c.EBE.Board[move.End-8] = move.Capture
-				c.Bitboard.Add(move.Capture, move.End-8)
-				// fmt.Printf("replacing en passant target at %d\n", move.End-8)
-			} else {
-				c.EBE.Board[move.End+8] = move.Capture
-				c.Bitboard.Add(move.Capture, move.End+8)
-				// fmt.Printf("replacing en passant target at %d\n", move.End+8)
-			}
-		} else {
-			c.EBE.Board[move.End] = move.Capture
-			c.Bitboard.Add(move.Capture, move.End)
-		}
-		c.Captured = c.Captured[:len(c.Captured)-1]
 	}
 
 	c.Moves = c.Moves[:len(c.Moves)-1]

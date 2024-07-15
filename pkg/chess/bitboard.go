@@ -51,7 +51,71 @@ func (b BitBoard) SideThreatens(side int) uint64 {
 }
 
 func (b BitBoard) InCheck(side int) bool {
-	return b[side|KING]&b.SideThreatens(enemy(side)) != 0
+	enemySide := enemy(side)
+	enemyBitboard := b[enemySide]
+	selfBitboard := b[side]
+	all := b.AllPieces()
+	king := b[side|KING]
+
+	// expected := b[side|KING]&b.SideThreatens(enemy(side)) != 0
+	// fmt.Printf("expecting inCheck to be %v\n", expected)
+	// actual := false
+
+	threatens := getQueenMoves(enemyBitboard, selfBitboard, king)
+	// fmt.Printf("found following threatens if king were queen:\n%s\n", To2DString(threatens))
+	if threatens&b[enemySide|QUEEN] != 0 {
+		// fmt.Println("in check from queen")
+		return true
+		// actual = true
+	}
+
+	threatens = getBishopMoves(enemyBitboard, selfBitboard, king)
+	// fmt.Printf("found following threatens if king were bishop:\n%s\n", To2DString(threatens))
+	if threatens&b[enemySide|BISHOP] != 0 {
+		// fmt.Println("in check from bishop")
+		return true
+		// actual = true
+	}
+
+	threatens = b.KingMoves(side)
+	// fmt.Printf("found following threatens if king were king:\n%s\n", To2DString(threatens))
+	if threatens&b[enemySide|KING] != 0 {
+		// fmt.Println("in check from king")
+		return true
+		// actual = true
+	}
+
+	threatens = getRookMoves(enemyBitboard, selfBitboard, king)
+	// fmt.Printf("found following threatens if king were rook:\n%s\n", To2DString(threatens))
+	if threatens&b[enemySide|ROOK] != 0 {
+		// fmt.Println("in check from rook")
+		return true
+		// actual = true
+	}
+
+	threatens = getKnightMoves(king)
+	// fmt.Printf("found following threatens if king were knight:\n%s\n", To2DString(threatens))
+	if threatens&b[enemySide|KNIGHT] != 0 {
+		// fmt.Println("in check from knight")
+		return true
+		// actual = true
+	}
+
+	threatens, _ = genPawnMoves(side, selfBitboard, king, all)
+	// fmt.Printf("found following threatens if king were pawn:\n%s\n", To2DString(threatens))
+	if threatens&b[enemySide|PAWN] != 0 {
+		// fmt.Println("in check from pawn")
+		return true
+		// actual = true
+	}
+
+	// if actual != expected {
+	// 	panic(fmt.Sprintf("expected inCheck to be %v but got %v", expected, actual))
+	// }
+	//
+	// fmt.Println("not in check")
+	return false
+	// return b[side|KING]&b.SideThreatens(enemy(side)) != 0
 }
 
 func (b BitBoard) PawnMoves(side int) (uint64, uint64) {
@@ -59,6 +123,10 @@ func (b BitBoard) PawnMoves(side int) (uint64, uint64) {
 	pawns := b[side|PAWN]
 	allPieces := b.AllPieces()
 
+	return genPawnMoves(side, selfBitboard, pawns, allPieces)
+}
+
+func genPawnMoves(side int, selfBitboard, pawns, allPieces uint64) (uint64, uint64) {
 	if side != WHITE {
 		selfBitboard = rotate180(selfBitboard)
 		pawns = rotate180(pawns)
@@ -91,14 +159,19 @@ func (b BitBoard) KingMoves(side int) uint64 {
 	selfBitboard := b[side]
 
 	moves := uint64(0)
-	moves = moves | ((b[KING|side] & (^rankMask(8))) << NORTH)
-	moves = moves | ((b[KING|side] & (^rankMask(1))) >> NORTH)
-	moves = moves | ((b[KING|side] & (^fileMask(8))) << EAST)
-	moves = moves | ((b[KING|side] & (^fileMask(1))) >> EAST)
-	moves = moves | ((b[KING|side] & (^(rankMask(8) | fileMask(8)))) << NORTHEAST)
-	moves = moves | ((b[KING|side] & (^(rankMask(1) | fileMask(8)))) >> NORTHWEST)
-	moves = moves | ((b[KING|side] & (^(rankMask(8) | fileMask(1)))) << NORTHWEST)
-	moves = moves | ((b[KING|side] & (^(rankMask(1) | fileMask(1)))) >> NORTHEAST)
+	king := b[KING|side]
+	rank1 := rankMask(1)
+	rank8 := rankMask(8)
+	file1 := fileMask(1)
+	file8 := fileMask(8)
+	moves = moves | ((king & (^rank8)) << NORTH)
+	moves = moves | ((king & (^rank1)) >> NORTH)
+	moves = moves | ((king & (^file8)) << EAST)
+	moves = moves | ((king & (^file1)) >> EAST)
+	moves = moves | ((king & (^(rank8 | file8))) << NORTHEAST)
+	moves = moves | ((king & (^(rank1 | file8))) >> NORTHWEST)
+	moves = moves | ((king & (^(rank8 | file1))) << NORTHWEST)
+	moves = moves | ((king & (^(rank1 | file1))) >> NORTHEAST)
 
 	moves = moves & (^selfBitboard)
 
@@ -109,45 +182,51 @@ func (b BitBoard) RookMoves(side int) uint64 {
 	enemyBitboard := b[enemy(side)]
 	selfBitboard := b[side]
 
+	return getRookMoves(enemyBitboard, selfBitboard, b[side|ROOK])
+}
+
+func getRookMoves(enemyBitboard, selfBitboard, rooks uint64) uint64 {
 	moves := uint64(0)
-	locs := toPieceLocations(b[side|ROOK])
+	locs := toPieceLocations(rooks)
 	for _, loc := range locs {
 		moves = moves | verticalCrossMasked(loc, (enemyBitboard|selfBitboard)&(^(0b1<<loc)))
 	}
 
-	moves = moves & (^selfBitboard)
-
-	return moves
+	return moves & (^selfBitboard)
 }
 
 func (b BitBoard) BishopMoves(side int) uint64 {
 	enemyBitboard := b[enemy(side)]
 	selfBitboard := b[side]
 
+	return getBishopMoves(enemyBitboard, selfBitboard, b[side|BISHOP])
+}
+
+func getBishopMoves(enemyBitboard, selfBitboard, bishops uint64) uint64 {
 	moves := uint64(0)
-	locs := toPieceLocations(b[side|BISHOP])
+	locs := toPieceLocations(bishops)
 	for _, loc := range locs {
 		moves = moves | diagonalCrossMasked(loc, (enemyBitboard|selfBitboard)&(^(0b1<<loc)))
 	}
 
-	moves = moves & (^selfBitboard)
-
-	return moves
+	return moves & (^selfBitboard)
 }
 
 func (b BitBoard) QueenMoves(side int) uint64 {
 	enemyBitboard := b[enemy(side)]
 	selfBitboard := b[side]
 
+	return getQueenMoves(enemyBitboard, selfBitboard, b[side|QUEEN])
+}
+
+func getQueenMoves(enemyBitboard, selfBitboard, queens uint64) uint64 {
 	moves := uint64(0)
-	locs := toPieceLocations(b[side|QUEEN])
+	locs := toPieceLocations(queens)
 	for _, loc := range locs {
 		moves = moves | diagonalCrossMasked(loc, (enemyBitboard|selfBitboard)&(^(0b1<<loc))) | verticalCrossMasked(loc, (enemyBitboard|selfBitboard)&(^(0b1<<loc)))
 	}
 
-	moves = moves & (^selfBitboard)
-
-	return moves
+	return moves & (^selfBitboard)
 }
 
 func (b BitBoard) Remove(piece, position int) {
@@ -173,9 +252,10 @@ func To2DString(board uint64) string {
 }
 
 func toPieceLocations(bitboard uint64) []int {
-	locations := []int{}
+	locations := make([]int, 64)
+	count := 0
 	if bitboard == 0 {
-		return locations
+		return locations[:count]
 	}
 
 	shifted := 0
@@ -188,12 +268,13 @@ func toPieceLocations(bitboard uint64) []int {
 
 		shifted += shift
 
-		locations = append(locations, shifted)
+		locations[count] = shifted
+		count += 1
 		shifted += 1
 		bitboard = bitboard >> (shift + 1)
 	}
 
-	return locations
+	return locations[:count]
 }
 
 func mirrorHorizontal(x uint64) uint64 {
@@ -389,21 +470,29 @@ func diagonalCrossMasked(pos int, pieces uint64) uint64 {
 
 func getKnightMoves(knightLoc uint64) uint64 {
 	moves := uint64(0)
+	rank1 := rankMask(1)
+	rank2 := rankMask(2)
+	rank7 := rankMask(7)
+	rank8 := rankMask(8)
+	file1 := fileMask(1)
+	file2 := fileMask(2)
+	file7 := fileMask(7)
+	file8 := fileMask(8)
 	//ENE & ESE
-	moves = moves | ((knightLoc & (^(rankMask(8) | fileMask(7) | fileMask(8)))) << (EAST + NORTHEAST))
-	moves = moves | ((knightLoc & (^(rankMask(1) | fileMask(7) | fileMask(8)))) >> (WEST + NORTHWEST))
+	moves = moves | ((knightLoc & (^(rank8 | file7 | file8))) << (EAST + NORTHEAST))
+	moves = moves | ((knightLoc & (^(rank1 | file7 | file8))) >> (WEST + NORTHWEST))
 
 	//NNE & SSE
-	moves = moves | ((knightLoc & (^(rankMask(8) | rankMask(7) | fileMask(8)))) << (NORTH + NORTHEAST))
-	moves = moves | ((knightLoc & (^(rankMask(1) | rankMask(2) | fileMask(8)))) >> (NORTH + NORTHWEST))
+	moves = moves | ((knightLoc & (^(rank8 | rank7 | file8))) << (NORTH + NORTHEAST))
+	moves = moves | ((knightLoc & (^(rank1 | rank2 | file8))) >> (NORTH + NORTHWEST))
 
 	//WNW & WSW
-	moves = moves | ((knightLoc & (^(rankMask(8) | fileMask(1) | fileMask(2)))) << (WEST + NORTHWEST))
-	moves = moves | ((knightLoc & (^(rankMask(1) | fileMask(1) | fileMask(2)))) >> (EAST + NORTHEAST))
+	moves = moves | ((knightLoc & (^(rank8 | file1 | file2))) << (WEST + NORTHWEST))
+	moves = moves | ((knightLoc & (^(rank1 | file1 | file2))) >> (EAST + NORTHEAST))
 
 	//NNE & SSE
-	moves = moves | ((knightLoc & (^(rankMask(8) | rankMask(7) | fileMask(1)))) << (NORTH + NORTHWEST))
-	moves = moves | ((knightLoc & (^(rankMask(1) | rankMask(2) | fileMask(1)))) >> (NORTH + NORTHEAST))
+	moves = moves | ((knightLoc & (^(rank8 | rank7 | file1))) << (NORTH + NORTHWEST))
+	moves = moves | ((knightLoc & (^(rank1 | rank2 | file1))) >> (NORTH + NORTHEAST))
 
 	return moves
 }
