@@ -11,7 +11,11 @@
 	</select>
 	Play as:
 	<select name="playerselect" {{if .Started}}disabled{{end}}>
-		<option value="X" {{if eq .GameOptions.PlayerID "X" }}selected="selected" {{end}}>X</option>
-		<option value="O" {{if eq .GameOptions.PlayerID "O" }}selected="selected" {{end}}>O</option>
+		<option value="{{index .GameOptions.PlayerNames 0}}" {{if eq
+			.GameOptions.PlayerID "index .GameOptions.PlayerNames 0" }}selected="selected" {{end}}>{{index
+			.GameOptions.PlayerNames 0}}</option>
+		<option value="{{index .GameOptions.PlayerNames 1}}" {{if eq
+			.GameOptions.PlayerID "index .GameOptions.PlayerNames 1" }}selected="selected" {{end}}>{{index
+			.GameOptions.PlayerNames 1}}</option>
 	</select>
 </form>

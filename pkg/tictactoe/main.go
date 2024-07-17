@@ -1,238 +1,25 @@
 package tictactoe
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
-	mrand "math/rand"
 	"slices"
-	"strconv"
 	"strings"
-
-	"github.com/jfosburgh/gomes/pkg/game"
 )
 
 var (
-	Modes = []game.SelectOption{
-		{
-			Value:   "0",
-			Content: "Player vs. Player",
-		},
-		{
-			Value:   "1",
-			Content: "Player vs. Bot",
-		},
+	playerToInt = map[string]int{
+		"X": 1,
+		"O": -1,
+		" ": 0,
+	}
+	intToPlayer = map[int]string{
+		1:  "X",
+		0:  " ",
+		-1: "O",
 	}
 
-	Difficulties = []game.SelectOption{
-		{Value: "0", Content: "Easy"},
-		{Value: "1", Content: "Medium"},
-		{Value: "2", Content: "Hard"},
-		{Value: "3", Content: "Unbeatable"},
-	}
-
-	Depths = map[string]int{
-		"0": 1,
-		"1": 2,
-		"2": 4,
-		"3": 9,
-	}
-)
-
-type Game struct {
-	State         []string
-	Text          string
-	CurrentPlayer string
-	PlayerID      string
-	Active        bool
-	Correct       []int
-	ID            string
-	Name          string
-	Depth         int
-}
-
-type gamecell struct {
-	Content   string
-	Classes   string
-	Clickable bool
-}
-
-type gamestate struct {
-	State        []gamecell
-	StateString  string
-	StatusText   string
-	ActivePlayer string
-	PlayerID     string
-	Started      bool
-	GameOver     bool
-	ID           string
-}
-
-func (g *Game) Info() (string, string) {
-	return "Tic-Tac-Toe", "Be the first to get three in a row!"
-}
-
-func (g *Game) GameOptions() game.GameOptions {
-	return game.GameOptions{
-		Difficulties:       Difficulties,
-		Modes:              Modes,
-		SelectedMode:       Modes[0].Value,
-		SelectedDifficulty: Difficulties[0].Value,
-		Name:               "tictactoe",
-		Bot:                false,
-		PlayerID:           "",
-	}
-}
-
-func (g *Game) fillBoard() []gamecell {
-	gamecells := []gamecell{}
-	botTurn := g.PlayerID != "" && g.PlayerID != g.CurrentPlayer
-	for index, content := range g.State {
-		classes := "game-cell"
-		clickable := false
-		if content == "_" && g.Active && !botTurn {
-			classes += " enabled"
-			clickable = true
-		}
-		if slices.Contains(g.Correct, index) {
-			classes += " correct"
-		}
-		gamecells = append(gamecells, gamecell{Content: content, Classes: classes, Clickable: clickable})
-	}
-
-	return gamecells
-}
-
-func (g *Game) TemplateData() (string, interface{}) {
-	gameState := gamestate{
-		State:        g.fillBoard(),
-		StateString:  strings.Join(g.State, ","),
-		StatusText:   g.Text,
-		ActivePlayer: g.CurrentPlayer,
-		PlayerID:     g.PlayerID,
-		Started:      g.Active && len(g.Correct) == 0,
-		GameOver:     !g.Active && len(g.Correct) != 0,
-		ID:           g.ID,
-	}
-	return "tictactoe", gameState
-}
-
-func (g *Game) NewGame() (game.Game, string) {
-	id := make([]byte, 16)
-	rand.Read(id)
-	stringID := fmt.Sprintf("%x", id)
-	g = &Game{
-		State:         []string{"_", "_", "_", "_", "_", "_", "_", "_", "_"},
-		Text:          "X's Turn!",
-		CurrentPlayer: "X",
-		PlayerID:      "",
-		Active:        false,
-		Correct:       []int{},
-		ID:            stringID,
-		Name:          "tictactoe",
-		Depth:         0,
-	}
-	return g, stringID
-}
-
-func (g *Game) Start(opts game.GameOptions) {
-	g.Active = true
-	g.PlayerID = opts.PlayerID
-	g.Depth = Depths[opts.SelectedDifficulty]
-}
-
-func status(state []string) (bool, []int) {
-	for i := 0; i < 3; i++ {
-		if state[i] != "_" && (state[i] == state[i+3] && state[i] == state[i+6]) {
-			return true, []int{i, i + 3, i + 6}
-		}
-		if state[3*i] != "_" && (state[3*i] == state[3*i+1] && state[3*i] == state[3*i+2]) {
-			return true, []int{3 * i, 3*i + 1, 3*i + 2}
-		}
-	}
-	if state[0] != "_" && (state[0] == state[4] && state[0] == state[8]) {
-		return true, []int{0, 4, 8}
-	}
-	if state[2] != "_" && (state[2] == state[4] && state[2] == state[6]) {
-		return true, []int{2, 4, 6}
-	}
-	if !slices.Contains(state, "_") {
-		return true, []int{-1}
-	}
-	return false, []int{}
-}
-
-func moves(state []string) []int {
-	empty := []int{}
-	for i, val := range state {
-		if val == "_" {
-			empty = append(empty, i)
-		}
-	}
-
-	return empty
-}
-
-func (g *Game) BotTurn() int {
-	empty := moves(g.State)
-	bestVal := -100
-	vals := []int{}
-	for _, move := range empty {
-		newState := make([]string, len(g.State))
-		copy(newState, g.State)
-		newState[move] = g.CurrentPlayer
-		nextPlayer := "X"
-		if g.CurrentPlayer == "X" {
-			nextPlayer = "O"
-		}
-		value := minimax(newState, nextPlayer, g.Depth-1)
-		if g.CurrentPlayer == "O" {
-			value *= -1
-		}
-
-		vals = append(vals, value)
-
-		if value > bestVal {
-			bestVal = value
-		}
-	}
-
-	moveOptions := []int{}
-	for i, val := range vals {
-		if val == bestVal {
-			moveOptions = append(moveOptions, empty[i])
-		}
-	}
-
-	bestMove := moveOptions[mrand.Intn(len(moveOptions))]
-	return bestMove
-}
-
-func boardString(state []string) string {
-	return fmt.Sprintf("%s|%s|%s\n-----\n%s|%s|%s\n-----\n%s|%s|%s",
-		state[0],
-		state[1],
-		state[2],
-		state[3],
-		state[4],
-		state[5],
-		state[6],
-		state[7],
-		state[8],
-	)
-}
-
-func boardValue(state []string) int {
-	gameOver, winningCells := status(state)
-	if gameOver && len(winningCells) == 1 {
-		return 0
-	} else if gameOver && state[winningCells[0]] == "X" {
-		return 10
-	} else if gameOver {
-		return -10
-	}
-
-	tris := [][]int{
+	tris = [][]int{
 		{0, 1, 2},
 		{3, 4, 5},
 		{6, 7, 8},
@@ -242,103 +29,184 @@ func boardValue(state []string) int {
 		{0, 4, 8},
 		{2, 4, 5},
 	}
+)
 
-	value := 0
-
-	for _, tri := range tris {
-		states := []string{
-			state[tri[0]],
-			state[tri[1]],
-			state[tri[2]],
-		}
-
-		xCount := 0
-		oCount := 0
-		for _, p := range states {
-			if p == "X" {
-				xCount++
-			}
-			if p == "O" {
-				oCount++
-			}
-		}
-		if xCount > 1 && oCount == 0 {
-			rowVal := 1 + 2*(xCount-1)
-			value += rowVal
-		}
-		if oCount > 1 && xCount == 0 {
-			rowVal := 1 + 2*(oCount-1)
-			value -= rowVal
-		}
-	}
-
-	return value
+type TicTacToeGame struct {
+	State       TBT
+	SearchDepth int
+	TopK        int
 }
 
-func minimax(state []string, player string, depth int) int {
-	if depth == 0 {
-		return boardValue(state)
-	}
-	empty := moves(state)
-	if len(empty) == 0 {
-		return boardValue(state)
-	}
-	value := []int{}
-	for _, move := range empty {
-		newState := make([]string, len(state))
-		copy(newState, state)
-		newState[move] = player
-		gameOver, winningCells := status(newState)
-		if gameOver && len(winningCells) == 1 {
-			value = append(value, 0)
-		} else if gameOver && newState[winningCells[0]] == "X" {
-			value = append(value, 10)
-		} else if gameOver {
-			value = append(value, -10)
-		} else {
-			if player == "X" {
-				value = append(value, minimax(newState, "O", depth-1))
-			} else {
-				value = append(value, minimax(newState, "X", depth-1))
-			}
-		}
-	}
-
-	if player == "O" {
-		return slices.Min(value)
-	}
-	return slices.Max(value)
+type TBT struct {
+	Board  TBTBoard
+	Active int
 }
 
-func (g *Game) ProcessTurn(id string) error {
-	index := -1
-	if id == "" {
-		index = g.BotTurn()
-	} else {
-		index, _ = strconv.Atoi(id)
+type TBTBoard [9]int
+
+func (t TBTBoard) String() string {
+	s := fmt.Sprintf("\n %s | %s | %s \n", intToPlayer[t[0]], intToPlayer[t[1]], intToPlayer[t[2]])
+	s += "-----------\n"
+	s += fmt.Sprintf(" %s | %s | %s \n", intToPlayer[t[3]], intToPlayer[t[4]], intToPlayer[t[5]])
+	s += "-----------\n"
+	s += fmt.Sprintf(" %s | %s | %s \n", intToPlayer[t[6]], intToPlayer[t[7]], intToPlayer[t[8]])
+
+	return s
+}
+
+func NewGame() *TicTacToeGame {
+	return &TicTacToeGame{
+		State: TBT{
+			Active: 1,
+		},
+		SearchDepth: 9,
+	}
+}
+
+func (t *TicTacToeGame) String() string {
+	return fmt.Sprintf("Board:\n%s\nNext Player: %s", t.State.Board, intToPlayer[t.State.Active])
+}
+
+func (t *TicTacToeGame) FromString(state string) error {
+	parts := strings.Split(state, ",")
+	board := parts[0]
+	if len(board) != 9 {
+		return errors.New(fmt.Sprintf("TTT FromString: could not parse '%s' as board state", board))
 	}
 
-	if g.State[index] != "_" {
-		return errors.New(fmt.Sprintf("Index %d already filled", index))
+	for i, char := range strings.Split(board, "") {
+		player, ok := playerToInt[char]
+		if !ok {
+			return errors.New(fmt.Sprintf("TTT FromString: '%s' is not a valid active player key", char))
+		}
+		t.State.Board[i] = player
 	}
 
-	g.State[index] = g.CurrentPlayer
-	if g.CurrentPlayer == "X" {
-		g.CurrentPlayer = "O"
-	} else {
-		g.CurrentPlayer = "X"
+	nextPlayer := parts[1]
+	player, ok := playerToInt[nextPlayer]
+	if !ok {
+		return errors.New(fmt.Sprintf("TTT FromString: '%s' is not a valid active player key", nextPlayer))
 	}
 
-	g.Text = fmt.Sprintf("%s's Turn!", g.CurrentPlayer)
-	gameOver, winningCells := status(g.State)
-	g.Active = !gameOver
-	g.Correct = winningCells
-	if !g.Active && len(g.Correct) == 3 {
-		g.Text = fmt.Sprintf("Game Over, %s won!", g.State[g.Correct[0]])
-	}
-	if !g.Active && len(g.Correct) == 1 {
-		g.Text = "It's a tie!"
-	}
+	t.State.Active = player
 
 	return nil
+}
+
+func (t *TicTacToeGame) ToGameString() string {
+	s := ""
+	for _, square := range t.State.Board {
+		s += intToPlayer[square]
+	}
+
+	s += ","
+	return s + intToPlayer[t.State.Active]
+}
+
+func (t *TicTacToeGame) GenerateMoves() []int {
+	moves := []int{}
+
+	for i := range 9 {
+		if t.State.Board[i] == 0 {
+			moves = append(moves, i)
+		}
+	}
+
+	return moves
+}
+
+func (t *TicTacToeGame) MakeMove(index int) {
+	t.State.Board[index] = t.State.Active
+	t.State.Active *= -1
+}
+
+func (t *TicTacToeGame) UnmakeMove(index int) {
+	t.State.Board[index] = 0
+	t.State.Active *= -1
+}
+
+func (t *TicTacToeGame) Search() ([]int, []int) {
+	options := t.GenerateMoves()
+	if len(options) == 0 {
+		return []int{}, []int{}
+	}
+
+	vals := []int{}
+	for _, option := range options {
+		t.MakeMove(option)
+		vals = append(vals, t.Minimax(t.SearchDepth-1))
+		t.UnmakeMove(option)
+	}
+
+	for i := range len(options) - 1 {
+		for j := 0; j < len(options)-i-1; j++ {
+			if vals[j] > vals[j+1] {
+				temp := vals[j]
+				vals[j] = vals[j+1]
+				vals[j+1] = temp
+
+				temp = options[j]
+				options[j] = options[j+1]
+				options[j+1] = temp
+			}
+		}
+	}
+
+	return options, vals
+}
+
+func (t *TicTacToeGame) Evaluate() int {
+	score := 0
+	depth := 0
+	for i := range 9 {
+		if t.State.Board[i] != 0 {
+			depth += 1
+		}
+	}
+	if t.State.Active == 1 {
+		depth *= -1
+	}
+
+	for _, tri := range tris {
+		triVal := t.State.Board[tri[0]] + t.State.Board[tri[1]] + t.State.Board[tri[2]]
+		triValSquared := t.State.Board[tri[0]]*t.State.Board[tri[0]] + t.State.Board[tri[1]]*t.State.Board[tri[1]] + t.State.Board[tri[2]]*t.State.Board[tri[2]]
+		if triVal*triVal == 9 {
+			// three in a row
+			score += 10*triVal - depth
+		} else if triValSquared == 3 {
+			// row filled
+			continue
+		} else if triVal*triVal == 4 {
+			// two in a row w/ third empty
+			score += 5 * triVal
+		} else {
+			// opposing two in row or one in row
+			score += triVal
+		}
+	}
+
+	return score
+}
+
+func (t *TicTacToeGame) Minimax(depth int) int {
+	if depth <= 0 {
+		return t.Evaluate()
+	}
+
+	moves := t.GenerateMoves()
+	if len(moves) == 0 {
+		return t.Evaluate()
+	}
+
+	vals := []int{}
+	for _, move := range moves {
+		t.MakeMove(move)
+		vals = append(vals, t.Minimax(depth-1))
+		t.UnmakeMove(move)
+	}
+
+	if t.State.Active == 1 {
+		return slices.Max(vals)
+	}
+	return slices.Min(vals)
 }

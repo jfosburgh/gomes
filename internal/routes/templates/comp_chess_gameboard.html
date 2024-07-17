@@ -1,0 +1,35 @@
+<div class="board-container">
+	{{ $gameID := .ID }}
+	{{ $botTurn := and (ne .ActivePlayer .PlayerID) (ne .PlayerID "") }}
+	{{ if and $botTurn (not .GameOver) }}
+	<div hidden hx-post="/games/{{$gameID}}/bot" hx-swap="outerHTML" hx-target=".board-container"
+		hx-trigger="load delay:.5s">
+	</div>
+	{{ end }}
+	<div class="chess-game-board" id="chess">
+		{{ range $index, $cell := .State }}
+		{{ if $cell.Clickable }}
+		<div class="{{$cell.Classes}}" id="{{ $index }}" hx-swap="outerHTML" hx-target=".board-container"
+			hx-post="/games/{{$gameID}}?move={{$index}}">
+			{{ if ne $cell.Content "_" }}
+			{{ $cell.Content }}
+			{{ end }}
+		</div>
+		{{ else }}
+		<div class="{{$cell.Classes}}" id="{{ $index }}">
+			{{ if ne $cell.Content "_" }}
+			{{ $cell.Content }}
+			{{ end }}
+		</div>
+		{{ end }}
+		{{ end }}
+	</div>
+	<p id="game-text">{{ .StatusText }}{{if and $botTurn (not .GameOver) }} Bot is
+		thinking...{{end}}</p>
+	{{ if .GameOver }}
+	<div class="button-group">
+		<button hx-get="/games/chess" hx-target=".content">Play Again</button>
+		<button hx-get="/gamelist" hx-target=".content">Play Something Else</button>
+	</div>
+	{{ end }}
+</div>
