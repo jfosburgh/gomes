@@ -74,18 +74,37 @@ func (t *TicTacToeGame) FromString(state string) error {
 		return errors.New(fmt.Sprintf("TTT FromString: could not parse '%s' as board state", board))
 	}
 
+	xCount := 0
+	oCount := 0
 	for i, char := range strings.Split(board, "") {
 		player, ok := playerToInt[char]
 		if !ok {
 			return errors.New(fmt.Sprintf("TTT FromString: '%s' is not a valid active player key", char))
 		}
 		t.State.Board[i] = player
+		if player == 1 {
+			xCount += 1
+		} else if player == -1 {
+			oCount += 1
+		}
+	}
+
+	if oCount > xCount {
+		return errors.New(fmt.Sprintf("TTT FromString: invalid board '%s', can't have more O's than X's", state))
+	}
+
+	if xCount-oCount > 1 {
+		return errors.New(fmt.Sprintf("TTT FromString: invalid board '%s', unbalanced", state))
 	}
 
 	nextPlayer := parts[1]
 	player, ok := playerToInt[nextPlayer]
 	if !ok {
 		return errors.New(fmt.Sprintf("TTT FromString: '%s' is not a valid active player key", nextPlayer))
+	}
+
+	if xCount > oCount && player != -1 {
+		return errors.New(fmt.Sprintf("TTT FromString: invalid board '%s', O should be next", state))
 	}
 
 	t.State.Active = player
