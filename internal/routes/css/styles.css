@@ -84,6 +84,7 @@ a:hover {
 	display: grid;
 	justify-content: center;
 	align-items: center;
+	position: relative;
 }
 
 .chess-game-cell {
@@ -104,7 +105,22 @@ a:hover {
 }
 
 .enabled:hover {
-	background: grey;
+	cursor: pointer;
+}
+
+.enabled::before {
+	content: "";
+	background: black;
+	height: 90%;
+	width: 90%;
+	position: absolute;
+	top: 5%;
+	left: 5%;
+	opacity: 0;
+}
+
+.enabled:hover::before {
+	opacity: 0.1;
 }
 
 .correct {

@@ -3,6 +3,40 @@
 {{ $botTurn := and (ne .Active .Player) (ne .Player "") }}
 <div class="board-container" {{ if and $botTurn (not .Ended) }}hx-post="/games/{{$gameID}}/bot" hx-swap="outerHTML"
 	hx-target=".board-container" hx-trigger="load delay:.5s" {{ end }}>
+	{{ if not .Started }}
+	<form id="settings">
+		<h3>Game Settings</h3>
+		<section id="mode">
+			<h4>Game Mode</h4>
+			<input type="radio" id="pvp" name="gamemode" value="pvp">
+			<label for="pvp">Player vs. Player</label><br>
+			<input type="radio" id="pvb" name="gamemode" value="pvb">
+			<label for="pvb">Player vs. Bot</label><br>
+		</section>
+		<section id="bot" style="display: none;">
+			<h4>Play as:</h4>
+			<input type="radio" id="X" name="playerID" value="X">
+			<label for="pvp">X</label><br>
+			<input type="radio" id="O" name="playerID" value="O">
+			<label for="pvb">O</label><br>
+			<p>(X goes first)</p>
+
+			<label for="depth">Bot Search Depth</label>
+			<select id="depth" required name="depth">
+				<option value="1">1</option>
+				<option value="2">2</option>
+				<option value="3">3</option>
+				<option value="4">4</option>
+				<option value="5">5</option>
+				<option value="6">6</option>
+				<option value="7">7</option>
+				<option value="8">8</option>
+				<option value="9">9</option>
+			</select>
+
+		</section>
+	</form>
+	{{ end }}
 	<div class="ttt-game-board" id="tictactoe">
 		{{ range $index, $cell := .Cells }}
 		<div class="{{$cell.Classes}}" id="{{ $index }}" {{ if $cell.Clickable }}hx-swap="outerHTML"
@@ -14,7 +48,8 @@
 	<p id="game-text">{{ .Status }}{{if and $botTurn (not .Ended) }} Bot is
 		thinking...{{end}}</p>
 	{{ if not .Started }}
-	<button hx-post="/games/{{$gameID}}/start" hx-swap="outerHTML" hx-target=".board-container">Start Game</button>
+	<button hx-post="/games/{{$gameID}}/start" hx-swap="outerHTML" hx-target=".board-container"
+		hx-include="[id='settings']">Start Game</button>
 	{{ end }}
 	{{ if .Ended }}
 	<div class="button-group">
@@ -23,4 +58,18 @@
 	</div>
 	{{ end }}
 </div>
+<script>
+	var pvp = document.getElementById("pvp")
+	var pvb = document.getElementById("pvb")
+	var botOptions = document.getElementById("bot")
+
+	pvp.addEventListener('change', function () {
+		botOptions.style.display = 'none'
+	})
+	pvb.addEventListener('change', function () {
+		botOptions.style.display = 'block'
+	})
+</script>
 {{ end }}
+
+{{ template "board" . }}

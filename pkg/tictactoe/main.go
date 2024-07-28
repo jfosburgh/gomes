@@ -174,6 +174,20 @@ func (t *TicTacToeGame) Search() ([]int, []int) {
 	return options, vals
 }
 
+func (t *TicTacToeGame) GameOver() (bool, int) {
+	for _, tri := range tris {
+		if t.State.Board[tri[0]] != 0 && (t.State.Board[tri[0]] == t.State.Board[tri[1]] && t.State.Board[tri[0]] == t.State.Board[tri[2]]) {
+			return true, t.State.Board[tri[0]]
+		}
+	}
+
+	if len(t.GenerateMoves()) == 0 {
+		return true, 0
+	}
+
+	return false, 0
+}
+
 func (t *TicTacToeGame) Evaluate() int {
 	score := 0
 	depth := 0

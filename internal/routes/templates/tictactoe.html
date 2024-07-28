@@ -1,5 +1,9 @@
 {{ define "title"}}Tic-Tac-Toe{{ end }}
+{{ define "scripts" }}
+{{ end }}
 {{ define "body" }}
 <h2 id="game-name">Tic-Tac-Toe</h2>
-{{ template "board" . }}
+<div class="content">
+	{{ template "board" . }}
+</div>
 {{ end }}
