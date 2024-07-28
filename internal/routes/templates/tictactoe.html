@@ -1,3 +1,5 @@
+{{ define "title"}}Tic-Tac-Toe{{ end }}
+{{ define "body" }}
 <h2 id="game-name">Tic-Tac-Toe</h2>
-{{ template "comp_mode_select.html" . }}
-{{ template "comp_tictactoe_gameboard.html" .GameData }}
+{{ template "board" . }}
+{{ end }}

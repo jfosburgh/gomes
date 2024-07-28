@@ -1,24 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<meta http-equiv="X-UA-Compatible" content="ie=edge" />
-	<script src="https://unpkg.com/htmx.org@1.9.10"
-		integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
-		crossorigin="anonymous"></script>
-	<link rel="stylesheet" href="/css/styles.css" />
-	<title>Gomes</title>
-</head>
-
-<body>
-	<header>
-		<h1 class="title">Welcome to Gomes!</h1>
-	</header>
-	<div class="content">
-		{{ template "comp_gamelist.html" . }}
+{{ define "title" }}Gomes{{ end }}
+{{ define "body" }}
+<header>
+	<h1 class="title">Welcome to Gomes!</h1>
+</header>
+<div class="content">
+	<h2>Choose a game</h2>
+	<div class="gamelist">
+		<a href="/games/chess">
+			<div class="gamecard">
+				<h3>Chess</h3>
+				<p>The ultimate strategy game!</p>
+			</div>
+		</a>
+		<a href="/games/tictactoe">
+			<div class="gamecard">
+				<h3>Tic-Tac-Toe</h3>
+				<p>Be the first to get three in a row!</p>
+			</div>
+		</a>
 	</div>
-</body>
-
-</html>
+</div>
+{{ end }}

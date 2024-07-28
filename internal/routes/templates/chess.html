@@ -1,3 +1,5 @@
+{{ define "title" }}Chess{{ end }}
+{{ define "body" }}
 <h2 id="game-name">Chess</h2>
-{{ template "comp_mode_select.html" . }}
-{{ template "comp_chess_gameboard.html" .GameData }}
+{{ template "board" . }}
+{{ end }}
