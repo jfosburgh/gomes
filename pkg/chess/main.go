@@ -2,20 +2,23 @@ package chess
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 )
 
 type ChessGame struct {
-	EBE      EBE
-	Bitboard BitBoard
-	Moves    []Move
-	Captured []int
+	EBE         EBE
+	Bitboard    BitBoard
+	Moves       []Move
+	Captured    []int
+	SearchDepth int
 }
 
 func NewGame() *ChessGame {
 	c := ChessGame{
-		EBE:      DefaultBoard(),
-		Bitboard: make(BitBoard),
+		EBE:         DefaultBoard(),
+		Bitboard:    make(BitBoard),
+		SearchDepth: 1,
 	}
 
 	c.Bitboard.FromEBE(c.EBE.Board)
@@ -43,6 +46,73 @@ func copyBoard(source EBEBoard) EBEBoard {
 	}
 
 	return board
+}
+
+func (c *ChessGame) BestMove() Move {
+	candidates := c.GetLegalMoves()
+
+	// TODO: Change this to move search
+	return candidates[rand.Intn(len(candidates))]
+}
+
+func (c *ChessGame) MoveFromLocations(start, end int) (Move, bool) {
+	pseudoLegal := c.GeneratePseudoLegal()
+	active := c.EBE.Active << 3
+	for _, move := range pseudoLegal {
+		if move.Start != start || move.End != end {
+			continue
+		}
+
+		legal := false
+		c.MakeMove(move)
+		if !c.Bitboard.InCheck(active) {
+			legal = true
+		}
+		c.UnmakeMove(move)
+
+		return move, legal
+	}
+
+	return Move{}, false
+}
+
+func (c *ChessGame) GetLegalMoves() []Move {
+	pseudoLegal := c.GeneratePseudoLegal()
+
+	moves := []Move{}
+	active := c.EBE.Active << 3
+	for _, move := range pseudoLegal {
+		c.MakeMove(move)
+		if !c.Bitboard.InCheck(active) {
+			moves = append(moves, move)
+		}
+		c.UnmakeMove(move)
+	}
+
+	return moves
+}
+
+func (c *ChessGame) GetMoveTargets(pieceLocation int) []int {
+	fmt.Printf("getting moves for %d\n", pieceLocation)
+	pseudoLegal := c.GeneratePseudoLegal()
+	fmt.Printf("found %d pseudolegal moves\n", len(pseudoLegal))
+
+	moves := []int{}
+	active := c.EBE.Active << 3
+	for _, move := range pseudoLegal {
+		if move.Start != pieceLocation {
+			fmt.Printf("discarding %+v, %d->%d\n", move, move.Start, move.End)
+			continue
+		}
+
+		c.MakeMove(move)
+		if !c.Bitboard.InCheck(active) {
+			moves = append(moves, move.End)
+		}
+		c.UnmakeMove(move)
+	}
+
+	return moves
 }
 
 func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {

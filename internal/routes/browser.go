@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -21,7 +22,7 @@ var (
 )
 
 type configdata struct {
-	Components *template.Template
+	Components map[string]*template.Template
 	Pages      map[string]*template.Template
 	Games      map[string]interface{}
 	GameData   map[string]*twoplayergame
@@ -66,20 +67,31 @@ func generateID() string {
 }
 
 var chessPieces = map[int]string{
-	chess.BLACK | chess.PAWN:   "p",
-	chess.BLACK | chess.KNIGHT: "n",
-	chess.BLACK | chess.BISHOP: "b",
-	chess.BLACK | chess.ROOK:   "r",
-	chess.BLACK | chess.QUEEN:  "q",
-	chess.BLACK | chess.KING:   "k",
-	chess.WHITE | chess.PAWN:   "P",
-	chess.WHITE | chess.KNIGHT: "N",
-	chess.WHITE | chess.BISHOP: "B",
-	chess.WHITE | chess.ROOK:   "R",
-	chess.WHITE | chess.QUEEN:  "Q",
-	chess.WHITE | chess.KING:   "K",
+	chess.BLACK | chess.PAWN:   "♟",
+	chess.BLACK | chess.KNIGHT: "♞",
+	chess.BLACK | chess.BISHOP: "♝",
+	chess.BLACK | chess.ROOK:   "♜",
+	chess.BLACK | chess.QUEEN:  "♛",
+	chess.BLACK | chess.KING:   "♚",
+	chess.WHITE | chess.PAWN:   "♙",
+	chess.WHITE | chess.KNIGHT: "♘",
+	chess.WHITE | chess.BISHOP: "♗",
+	chess.WHITE | chess.ROOK:   "♖",
+	chess.WHITE | chess.QUEEN:  "♕",
+	chess.WHITE | chess.KING:   "♔",
 	chess.EMPTY:                " ",
 }
+
+var chessPlayers = map[string]int{
+	"White": chess.WHITE,
+	"Black": chess.BLACK,
+}
+
+var chessNames = map[int]string{
+	0: "White",
+	1: "Black",
+}
+
 var tttPieces = map[int]string{
 	1:  "X",
 	0:  " ",
@@ -107,21 +119,53 @@ func fillTTTCells(game *tictactoe.TicTacToeGame, gameState *twoplayergame) []cel
 	return cells
 }
 
-func fillChessCells(game *chess.ChessGame, gameState *twoplayergame) []cell {
+func fillChessCells(game *chess.ChessGame, gameState *twoplayergame, selected int) []cell {
 	cells := make([]cell, 64)
+	gameActive := gameState.Started && !gameState.Ended
+	playerTurn := gameState.Player == "" || chessPlayers[gameState.Active] == game.EBE.Active<<3
 
-	for i := range 64 {
-		cells[i].Content = chessPieces[game.EBE.Board[i]]
+	validTargets := []int{}
+	if selected != -1 {
+		validTargets = game.GetMoveTargets(selected)
+		fmt.Printf("valid moves for %d: %+v\n", selected, validTargets)
+	}
 
-		clickable := gameState.Started && !gameState.Ended
-		cells[i].Clickable = clickable
+	fmt.Printf("playerTurn: %+v\n", playerTurn)
 
-		classes := "chess-game-cell"
-		if (i/8+i%8)%2 == 1 {
-			classes += " black"
+	side := game.EBE.Active << 3
+	fmt.Printf("side: %04b\n", side)
+
+	cellCount := 0
+	for rank := 7; rank >= 0; rank-- {
+		for file := range 8 {
+			i := 8*rank + file
+			cells[cellCount].Content = chessPieces[game.EBE.Board[i]]
+
+			classes := "chess-game-cell"
+			if (i/8+i%8)%2 == 1 {
+				classes += " black"
+			}
+
+			if i == selected {
+				classes += " selected"
+			}
+
+			validTarget := slices.Contains(validTargets, i)
+			if validTarget {
+				classes += " target"
+			}
+
+			activeSide := (game.EBE.Board[i]&0b1000 == side) && game.EBE.Board[i] != chess.EMPTY
+
+			moveable := playerTurn && activeSide
+			cells[cellCount].Clickable = gameActive && (moveable || validTarget)
+			if cells[cellCount].Clickable {
+				classes += " enabled"
+			}
+
+			cells[cellCount].Classes = classes
+			cellCount += 1
 		}
-
-		cells[i].Classes = classes
 	}
 
 	return cells
@@ -142,10 +186,10 @@ func (cfg *configdata) handleNewPage(w http.ResponseWriter, r *http.Request) {
 		chessGame := chess.NewGame()
 		cfg.Games[game.ID] = chessGame
 
-		game.Active = "white"
+		game.Active = "White"
 
 		game.State = chessGame.EBE.ToFEN()
-		game.Cells = fillChessCells(chessGame, &game)
+		game.Cells = fillChessCells(chessGame, &game, -1)
 	case "tictactoe":
 		ticTacToeGame := tictactoe.NewGame()
 		cfg.Games[game.ID] = ticTacToeGame
@@ -162,7 +206,7 @@ func (cfg *configdata) handleNewPage(w http.ResponseWriter, r *http.Request) {
 
 	cfg.GameData[game.ID] = &game
 
-	err := cfg.Pages[gameName].Execute(w, game)
+	err := cfg.Pages[gameName].ExecuteTemplate(w, "base.html", game)
 	if err != nil {
 		fmt.Printf("error executing template:\n%s\n", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -170,8 +214,8 @@ func (cfg *configdata) handleNewPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *configdata) respondWithComponent(w http.ResponseWriter, t string, data twoplayergame) {
-	// fmt.Printf("%+v\n", data)
-	err := cfg.Components.ExecuteTemplate(w, t, data)
+	// fmt.Printf("generating template %s with \n%+v\n", t, data)
+	err := cfg.Components[t].Execute(w, data)
 	if err != nil {
 		fmt.Printf("error executing template:\n%s\n", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -218,8 +262,57 @@ func (cfg *configdata) handleStartGame(w http.ResponseWriter, r *http.Request) {
 		compName = "tictactoe_gameboard.html"
 	case *chess.ChessGame:
 		game := gameInterface.(*chess.ChessGame)
-		data.Cells = fillChessCells(game, data)
+		if mode == "pvb" {
+			data.Player = r.FormValue("playerID")
+			game.SearchDepth, _ = strconv.Atoi(r.FormValue("depth"))
+			fmt.Printf("setting game parameters:\nPlayer: %s\nSearch Depth: %d\n", data.Player, game.SearchDepth)
+		}
+		data.Cells = fillChessCells(game, data, -1)
 		data.Status = "White makes the first move!"
+		compName = "chess_gameboard.html"
+	default:
+		fmt.Printf("unhandled game type: %t\n", gameInterface)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	cfg.respondWithComponent(w, compName, *data)
+}
+
+func flipRank(input int) int {
+	return 8*(7-input/8) + input%8
+}
+
+func (cfg *configdata) handleSelect(w http.ResponseWriter, r *http.Request) {
+	gameInterface, data, err := cfg.getGameFromRequest(r)
+	if err != nil {
+		fmt.Printf("error retrieving game from id:\n%s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	queries := r.URL.Query()
+	locationStr := queries.Get("location")
+	if locationStr == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	location, err := strconv.Atoi(locationStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	location = flipRank(location)
+
+	var compName string
+	switch gameInterface.(type) {
+	case *tictactoe.TicTacToeGame:
+		fmt.Println("select not implemented for tictactoe")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	case *chess.ChessGame:
+		game := gameInterface.(*chess.ChessGame)
+		fmt.Printf("returning chess board with piece %d selected\n", location)
+		data.Cells = fillChessCells(game, data, location)
 		compName = "chess_gameboard.html"
 	default:
 		fmt.Printf("unhandled game type: %t\n", gameInterface)
@@ -276,8 +369,39 @@ func (cfg *configdata) handleMove(w http.ResponseWriter, r *http.Request) {
 		compName = "tictactoe_gameboard.html"
 	case *chess.ChessGame:
 		game := gameInterface.(*chess.ChessGame)
-		data.Cells = fillChessCells(game, data)
-		data.Status = "White makes the first move!"
+
+		srcStr := queries.Get("piece")
+		if srcStr == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		src, err := strconv.Atoi(srcStr)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		move = flipRank(move)
+		src = flipRank(src)
+
+		gameMove, valid := game.MoveFromLocations(src, move)
+		if !valid {
+			fmt.Printf("requested move is invalid: %d->%d\n", src, move)
+			w.WriteHeader(http.StatusBadRequest)
+		}
+		game.MakeMove(gameMove)
+		data.Active = chessNames[game.EBE.Active]
+
+		data.Cells = fillChessCells(game, data, -1)
+		data.Ended = len(game.GetLegalMoves()) == 0
+		if data.Ended {
+			data.Status = fmt.Sprintf("%s Wins!", chessNames[^(game.EBE.Active)&0b1])
+
+			delete(cfg.GameData, data.ID)
+			delete(cfg.Games, data.ID)
+		} else {
+			data.Status = fmt.Sprintf("%s's Turn!", data.Active)
+		}
 		compName = "chess_gameboard.html"
 	default:
 		fmt.Printf("unhandled game type: %t\n", gameInterface)
@@ -323,8 +447,21 @@ func (cfg *configdata) handleBotTurn(w http.ResponseWriter, r *http.Request) {
 		compName = "tictactoe_gameboard.html"
 	case *chess.ChessGame:
 		game := gameInterface.(*chess.ChessGame)
-		data.Cells = fillChessCells(game, data)
-		data.Status = "White makes the first move!"
+
+		move := game.BestMove()
+		game.MakeMove(move)
+		data.Active = chessNames[game.EBE.Active]
+
+		data.Cells = fillChessCells(game, data, -1)
+		data.Ended = len(game.GetLegalMoves()) == 0
+		if data.Ended {
+			data.Status = fmt.Sprintf("%s Wins!", chessNames[^(game.EBE.Active)&0b1])
+
+			delete(cfg.GameData, data.ID)
+			delete(cfg.Games, data.ID)
+		} else {
+			data.Status = fmt.Sprintf("%s's Turn!", data.Active)
+		}
 		compName = "chess_gameboard.html"
 	default:
 		fmt.Printf("unhandled game type: %t\n", gameInterface)
@@ -335,30 +472,50 @@ func (cfg *configdata) handleBotTurn(w http.ResponseWriter, r *http.Request) {
 	cfg.respondWithComponent(w, compName, *data)
 }
 
+func join(sep string, s ...string) string {
+	return strings.Join(s, sep)
+}
+
+var tempFuncs = map[string]any{
+	"contains": strings.Contains,
+	"join":     join,
+	"toString": fmt.Sprint,
+}
+
 func newBrowserRouter() *http.ServeMux {
 	pattern := filepath.Join("internal/routes/templates/components", "*.html")
-	components := template.Must(template.ParseGlob(pattern))
+	components := make(map[string]*template.Template)
+
+	matches, _ := filepath.Glob(pattern)
+	for _, match := range matches {
+
+		name := filepath.Base(match)
+		t := template.Must(template.New(name).Funcs(tempFuncs).ParseFiles(match))
+
+		components[name] = t
+		fmt.Printf("added %s to components dict\n", name)
+	}
 
 	pattern = filepath.Join("internal/routes/templates", "*.html")
 	pages := make(map[string]*template.Template)
 	base := "internal/routes/templates/base.html"
 
-	matches, _ := filepath.Glob(pattern)
+	matches, _ = filepath.Glob(pattern)
 	for _, match := range matches {
 		if match == base {
 			continue
 		}
 
 		game := strings.Split(filepath.Base(match), ".")[0]
-		var t *template.Template
 
 		if game != "index" {
-			t, _ = template.ParseFiles(base, match, fmt.Sprintf("internal/routes/templates/components/%s_gameboard.html", game))
-			// fmt.Printf("created game template for %s\n", game)
+			t := template.Must(template.New(base).Funcs(tempFuncs).ParseFiles(base, match, fmt.Sprintf("internal/routes/templates/components/%s_gameboard.html", game)))
+			fmt.Printf("created game template for %s\n", game)
+			pages[game] = t
 		} else {
-			t, _ = template.ParseFiles(base, match)
+			t, _ := template.ParseFiles(base, match)
+			pages[game] = t
 		}
-		pages[game] = t
 	}
 
 	config := configdata{
@@ -375,6 +532,7 @@ func newBrowserRouter() *http.ServeMux {
 	browserRouter.HandleFunc("POST /games/{id}/start", config.handleStartGame)
 	browserRouter.HandleFunc("POST /games/{id}", config.handleMove)
 	browserRouter.HandleFunc("POST /games/{id}/bot", config.handleBotTurn)
+	browserRouter.HandleFunc("POST /games/{id}/select", config.handleSelect)
 
 	return browserRouter
 }

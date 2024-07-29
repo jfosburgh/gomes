@@ -3,10 +3,47 @@
 {{ $botTurn := and (ne .Active .Player) (ne .Player "") }}
 <div class="board-container" {{ if and $botTurn (not .Ended) }}hx-post="/games/{{$gameID}}/bot" hx-swap="outerHTML"
 	hx-target=".board-container" hx-trigger="load delay:.5s" {{ end }}>
+	{{ if not .Started }}
+	<form id="settings">
+		<h3>Game Settings</h3>
+		<section id="mode">
+			<h4>Game Mode</h4>
+			<input type="radio" id="pvp" name="gamemode" value="pvp">
+			<label for="pvp">Player vs. Player</label><br>
+			<input type="radio" id="pvb" name="gamemode" value="pvb">
+			<label for="pvb">Player vs. Bot</label><br>
+		</section>
+		<section id="bot" style="display: none;">
+			<h4>Play as:</h4>
+			<input type="radio" id="White" name="playerID" value="White">
+			<label for="pvp">White</label><br>
+			<input type="radio" id="Black" name="playerID" value="Black">
+			<label for="pvb">Black</label><br>
+			<p>(White goes first)</p>
+
+			<label for="depth">Bot Search Depth</label>
+			<select id="depth" required name="depth">
+				<option value="1">1 ply</option>
+				<option value="2">2 ply</option>
+				<option value="3">3 ply</option>
+			</select>
+		</section>
+	</form>
+	{{ end }}
 	<div class="chess-game-board" id="chess">
+		{{ $selected := -1 }}
 		{{ range $index, $cell := .Cells }}
+		{{ if contains $cell.Classes "selected" }}
+		{{ $selected = $index }}
+		{{ end }}
+		{{ end }}
+		{{ range $index, $cell := .Cells }}
+		{{ $url := join "" "/games/" (toString $gameID) "/select?location=" (toString $index) }}
+		{{ if contains $cell.Classes "target" }}
+		{{ $url = join "" "/games/" (toString $gameID) "?move=" (toString $index) "&piece=" (toString $selected) }}
+		{{ end }}
 		<div class="{{$cell.Classes}}" id="{{ $index }}" {{ if $cell.Clickable }}hx-swap="outerHTML"
-			hx-target=".board-container" hx-post="/games/{{$gameID}}?move={{$index}}" {{ end }}>
+			hx-target=".board-container" hx-post={{$url}} {{ end }}>
 			{{ if ne $cell.Content "_" }}
 			{{ $cell.Content }}
 			{{ end }}
@@ -15,6 +52,10 @@
 	</div>
 	<p id="game-text">{{ .Status }}{{if and $botTurn (not .Ended) }} Bot is
 		thinking...{{end}}</p>
+	{{ if not .Started }}
+	<button hx-post="/games/{{$gameID}}/start" hx-swap="outerHTML" hx-target=".board-container"
+		hx-include="[id='settings']">Start Game</button>
+	{{ end }}
 	{{ if .Ended }}
 	<div class="button-group">
 		<button hx-get="/games/chess" hx-target=".content">Play Again</button>
@@ -22,4 +63,20 @@
 	</div>
 	{{ end }}
 </div>
+{{ if and (not .Started) (not .Ended) }}
+<script>
+	var pvp = document.getElementById("pvp")
+	var pvb = document.getElementById("pvb")
+	var botOptions = document.getElementById("bot")
+
+	pvp.addEventListener('change', function () {
+		botOptions.style.display = 'none'
+	})
+	pvb.addEventListener('change', function () {
+		botOptions.style.display = 'block'
+	})
+</script>
 {{ end }}
+{{ end }}
+
+{{ template "board" . }}

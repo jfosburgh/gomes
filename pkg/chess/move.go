@@ -28,6 +28,26 @@ func (m Move) String() string {
 	return s
 }
 
+// func (c *ChessGame) MoveFromLocations(start, end, promotion int) Move {
+// 	move := Move{
+// 		Piece: c.EBE.Board[start],
+// 		Start: start,
+// 		End: end,
+//
+// 		Halfmoves: c.EBE.Halfmoves,
+// 		CastlingRights: c.EBE.CastlingRights,
+// 		EnPassantTarget: c.EBE.EnPassantTarget,
+// 	}
+//
+// 	return move
+// }
+//
+// func (c *ChessGame) MoveFromAlgebraic(start, end string) Move {
+// 	move := Move{}
+//
+// 	return move
+// }
+
 func (c *ChessGame) GeneratePseudoLegal() []Move {
 	// fmt.Printf("Generating moves for active player %d and castling rights %04b with board state\n%s\n", c.EBE.Active, c.EBE.CastlingRights, c.EBE.Board)
 	moves := []Move{}

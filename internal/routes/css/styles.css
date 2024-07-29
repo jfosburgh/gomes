@@ -97,11 +97,22 @@ a:hover {
 	display: grid;
 	justify-content: center;
 	align-items: center;
+	line-height: 50px;
+	text-align: center;
+	position: relative;
 }
 
 .black {
-	background: black;
-	color: white;
+	background: gray;
+	/* color: white; */
+}
+
+.selected {
+	background: green
+}
+
+.target {
+	background: red
 }
 
 .enabled:hover {
