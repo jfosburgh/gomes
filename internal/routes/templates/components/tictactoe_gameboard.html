@@ -58,6 +58,7 @@
 	</div>
 	{{ end }}
 </div>
+{{ if and (not .Started) (not .Ended) }}
 <script>
 	var pvp = document.getElementById("pvp")
 	var pvb = document.getElementById("pvb")
@@ -70,6 +71,7 @@
 		botOptions.style.display = 'block'
 	})
 </script>
+{{ end }}
 {{ end }}
 
 {{ template "board" . }}

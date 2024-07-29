@@ -27,7 +27,7 @@ var (
 		{1, 4, 7},
 		{2, 5, 8},
 		{0, 4, 8},
-		{2, 4, 5},
+		{2, 4, 6},
 	}
 )
 
@@ -145,15 +145,17 @@ func (t *TicTacToeGame) UnmakeMove(index int) {
 }
 
 func (t *TicTacToeGame) Search() ([]int, []int) {
+	// fmt.Printf("starting search with depth %d\n", t.SearchDepth)
 	options := t.GenerateMoves()
 	if len(options) == 0 {
 		return []int{}, []int{}
 	}
 
-	vals := []int{}
-	for _, option := range options {
+	vals := make([]int, len(options))
+	for i, option := range options {
 		t.MakeMove(option)
-		vals = append(vals, t.Minimax(t.SearchDepth-1))
+		vals[i] = t.Minimax(t.SearchDepth - 1)
+		// fmt.Printf("evaluated board state\n%s\nas %d to depth %d\n", t.State.Board, vals[i], t.SearchDepth)
 		t.UnmakeMove(option)
 	}
 
@@ -174,14 +176,27 @@ func (t *TicTacToeGame) Search() ([]int, []int) {
 	return options, vals
 }
 
+func (t *TicTacToeGame) BestMove() int {
+	options, _ := t.Search()
+	// fmt.Printf("Board:\n%s\nMoves: %+v\nVals:  %+v\n", t.State.Board, options, vals)
+
+	if t.State.Active == 1 {
+		return options[len(options)-1]
+	}
+
+	return options[0]
+}
+
 func (t *TicTacToeGame) GameOver() (bool, int) {
 	for _, tri := range tris {
 		if t.State.Board[tri[0]] != 0 && (t.State.Board[tri[0]] == t.State.Board[tri[1]] && t.State.Board[tri[0]] == t.State.Board[tri[2]]) {
+			// fmt.Printf("winning row: %+v\n", tri)
 			return true, t.State.Board[tri[0]]
 		}
 	}
 
 	if len(t.GenerateMoves()) == 0 {
+		// fmt.Printf("no moves remaining")
 		return true, 0
 	}
 
@@ -205,7 +220,8 @@ func (t *TicTacToeGame) Evaluate() int {
 		triValSquared := t.State.Board[tri[0]]*t.State.Board[tri[0]] + t.State.Board[tri[1]]*t.State.Board[tri[1]] + t.State.Board[tri[2]]*t.State.Board[tri[2]]
 		if triVal*triVal == 9 {
 			// three in a row
-			score += 10*triVal - depth
+			// fmt.Printf("found 3 in a row (%+v) in \n%s\n", tri, t.State.Board)
+			return 10*triVal - depth
 		} else if triValSquared == 3 {
 			// row filled
 			continue
@@ -231,10 +247,15 @@ func (t *TicTacToeGame) Minimax(depth int) int {
 		return t.Evaluate()
 	}
 
-	vals := []int{}
-	for _, move := range moves {
+	vals := make([]int, len(moves))
+	for i, move := range moves {
 		t.MakeMove(move)
-		vals = append(vals, t.Minimax(depth-1))
+		ended, _ := t.GameOver()
+		if ended {
+			vals[i] = t.Evaluate()
+		} else {
+			vals[i] = t.Minimax(depth - 1)
+		}
 		t.UnmakeMove(move)
 	}
 

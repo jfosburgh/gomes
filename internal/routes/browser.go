@@ -170,7 +170,7 @@ func (cfg *configdata) handleNewPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *configdata) respondWithComponent(w http.ResponseWriter, t string, data twoplayergame) {
-	fmt.Printf("%+v\n", data)
+	// fmt.Printf("%+v\n", data)
 	err := cfg.Components.ExecuteTemplate(w, t, data)
 	if err != nil {
 		fmt.Printf("error executing template:\n%s\n", err.Error())
@@ -210,7 +210,8 @@ func (cfg *configdata) handleStartGame(w http.ResponseWriter, r *http.Request) {
 		game := gameInterface.(*tictactoe.TicTacToeGame)
 		if mode == "pvb" {
 			data.Player = r.FormValue("playerID")
-			game.SearchDepth, _ = strconv.Atoi("depth")
+			game.SearchDepth, _ = strconv.Atoi(r.FormValue("depth"))
+			// fmt.Printf("setting game parameters:\nPlayer: %s\nSearch Depth: %d\n", data.Player, game.SearchDepth)
 		}
 		data.Cells = fillTTTCells(game, data)
 		data.Status = "X makes the first move!"
@@ -287,6 +288,53 @@ func (cfg *configdata) handleMove(w http.ResponseWriter, r *http.Request) {
 	cfg.respondWithComponent(w, compName, *data)
 }
 
+func (cfg *configdata) handleBotTurn(w http.ResponseWriter, r *http.Request) {
+	gameInterface, data, err := cfg.getGameFromRequest(r)
+	if err != nil {
+		fmt.Printf("error retrieving game from id:\n%s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	var compName string
+	switch gameInterface.(type) {
+	case *tictactoe.TicTacToeGame:
+		game := gameInterface.(*tictactoe.TicTacToeGame)
+		move := game.BestMove()
+		game.MakeMove(move)
+
+		var winner int
+		data.Ended, winner = game.GameOver()
+
+		data.Active = tttPieces[game.State.Active]
+		data.Cells = fillTTTCells(game, data)
+
+		if data.Ended {
+			if winner == 0 {
+				data.Status = "It's a tie!"
+			} else {
+				data.Status = fmt.Sprintf("%s Wins!", tttPieces[winner])
+			}
+
+			delete(cfg.GameData, data.ID)
+			delete(cfg.Games, data.ID)
+		} else {
+			data.Status = fmt.Sprintf("%s's Turn!", data.Active)
+		}
+		compName = "tictactoe_gameboard.html"
+	case *chess.ChessGame:
+		game := gameInterface.(*chess.ChessGame)
+		data.Cells = fillChessCells(game, data)
+		data.Status = "White makes the first move!"
+		compName = "chess_gameboard.html"
+	default:
+		fmt.Printf("unhandled game type: %t\n", gameInterface)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	cfg.respondWithComponent(w, compName, *data)
+}
+
 func newBrowserRouter() *http.ServeMux {
 	pattern := filepath.Join("internal/routes/templates/components", "*.html")
 	components := template.Must(template.ParseGlob(pattern))
@@ -306,7 +354,7 @@ func newBrowserRouter() *http.ServeMux {
 
 		if game != "index" {
 			t, _ = template.ParseFiles(base, match, fmt.Sprintf("internal/routes/templates/components/%s_gameboard.html", game))
-			fmt.Printf("created game template for %s\n", game)
+			// fmt.Printf("created game template for %s\n", game)
 		} else {
 			t, _ = template.ParseFiles(base, match)
 		}
