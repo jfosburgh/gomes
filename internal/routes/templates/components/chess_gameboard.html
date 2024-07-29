@@ -41,6 +41,9 @@
 		{{ $url := join "" "/games/" (toString $gameID) "/select?location=" (toString $index) }}
 		{{ if contains $cell.Classes "target" }}
 		{{ $url = join "" "/games/" (toString $gameID) "?move=" (toString $index) "&piece=" (toString $selected) }}
+		{{ else if contains $cell.Classes "promotion" }}
+		{{ $url = join "" "/games/" (toString $gameID) "?move=" (toString $index) "&piece=" (toString $selected)
+		"&promote=true" }}
 		{{ end }}
 		<div class="{{$cell.Classes}}" id="{{ $index }}" {{ if $cell.Clickable }}hx-swap="outerHTML"
 			hx-target=".board-container" hx-post={{$url}} {{ end }}>

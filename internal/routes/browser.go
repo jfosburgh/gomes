@@ -381,6 +381,8 @@ func (cfg *configdata) handleMove(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		promote := queries.Get("promote") == "true"
+
 		move = flipRank(move)
 		src = flipRank(src)
 
