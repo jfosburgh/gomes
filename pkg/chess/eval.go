@@ -2,20 +2,23 @@ package chess
 
 import (
 	"fmt"
-	"slices"
+	"math"
 )
 
-func (c *ChessGame) Search() ([]Move, []int) {
+func (c *ChessGame) Search() ([]Move, []float64) {
 	fmt.Printf("starting search at depth %d\n", c.SearchDepth)
 	options := c.GetLegalMoves()
-	vals := make([]int, len(options))
+	vals := make([]float64, len(options))
 
 	evaluated := 0
+	skipped := 0
 	for i, move := range options {
 		c.MakeMove(move)
 		var e int
-		vals[i], e = c.Minimax(c.SearchDepth - 1)
+		v, e, s := c.Minimax(c.SearchDepth-1, math.Inf(-1), math.Inf(1))
+		vals[i] = v
 		evaluated += e
+		skipped += s
 		c.UnmakeMove(move)
 	}
 
@@ -35,41 +38,65 @@ func (c *ChessGame) Search() ([]Move, []int) {
 
 	fmt.Println("search results")
 	for i := range options {
-		fmt.Printf(" > %s == %d\n", options[i], vals[i])
+		fmt.Printf(" > %s == %f\n", options[i], vals[i])
 	}
-	fmt.Printf("searched %d nodes\n", evaluated)
+	fmt.Printf("searched %d nodes, skipped %d\n", evaluated, skipped)
 
 	return options, vals
 }
 
-func (c *ChessGame) Minimax(depth int) (int, int) {
+func (c *ChessGame) Minimax(depth int, alpha, beta float64) (float64, int, int) {
 	if depth <= 0 || c.EBE.Halfmoves >= 100 {
-		return c.Evaluate(), 1
+		return c.Evaluate(), 1, 0
 	}
 
 	moves := c.GetLegalMoves()
 	if len(moves) == 0 {
-		return c.Evaluate(), 1
+		return c.Evaluate(), 1, 0
 	}
-	vals := make([]int, len(moves))
 
 	evaluated := 0
-	for i, move := range moves {
-		c.MakeMove(move)
-		var e int
-		vals[i], e = c.Minimax(depth - 1)
-		evaluated += e
-		c.UnmakeMove(move)
-	}
+	skipped := 0
+	checked := 0
+	if c.EBE.Active<<3 == WHITE {
+		value := math.Inf(-1)
+		for _, move := range moves {
+			c.MakeMove(move)
+			v, e, s := c.Minimax(depth-1, alpha, beta)
+			value = max(value, v)
+			evaluated += e
+			skipped += s
+			c.UnmakeMove(move)
 
-	if c.EBE.Active<<3 == BLACK {
-		return slices.Min(vals), evaluated
+			checked += 1
+			if value > beta {
+				break
+			}
+			alpha = max(alpha, value)
+		}
+		return value, evaluated, skipped + len(moves) - checked
+	} else {
+		value := math.Inf(1)
+		for _, move := range moves {
+			c.MakeMove(move)
+			v, e, s := c.Minimax(depth-1, alpha, beta)
+			value = min(value, v)
+			evaluated += e
+			skipped += s
+			c.UnmakeMove(move)
+
+			checked += 1
+			if value < alpha {
+				break
+			}
+			beta = min(beta, value)
+		}
+		return value, evaluated, skipped + len(moves) - checked
 	}
-	return slices.Max(vals), evaluated
 }
 
-func (c *ChessGame) Evaluate() int {
-	score := c.Material(c.EBE.Active<<3) - c.Material(enemy(c.EBE.Active<<3))
+func (c *ChessGame) Evaluate() float64 {
+	score := float64(c.Material(c.EBE.Active<<3) - c.Material(enemy(c.EBE.Active<<3)))
 	if c.EBE.Active<<3 == BLACK {
 		score *= -1
 	}
