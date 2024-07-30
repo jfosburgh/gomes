@@ -270,7 +270,8 @@ func (cfg *configdata) handleStartGame(w http.ResponseWriter, r *http.Request) {
 		game := gameInterface.(*chess.ChessGame)
 		if mode == "pvb" {
 			data.Player = r.FormValue("playerID")
-			game.SearchDepth, _ = strconv.Atoi(r.FormValue("depth"))
+			depth, _ := strconv.Atoi(r.FormValue("depth"))
+			game.SearchDepth = depth * 2
 			fmt.Printf("setting game parameters:\nPlayer: %s\nSearch Depth: %d\n", data.Player, game.SearchDepth)
 		}
 		data.Cells = fillChessCells(game, data, -1, false)
@@ -375,7 +376,7 @@ func (cfg *configdata) handlePromotion(w http.ResponseWriter, r *http.Request) {
 		delete(cfg.GameData, data.ID)
 		delete(cfg.Games, data.ID)
 	} else {
-		data.Status = fmt.Sprintf("%s's Turn!", data.Active)
+		data.Status = fmt.Sprintf("%s played %s, %s's Turn!", chessNames[^game.EBE.Active&0b1], gameMove, data.Active)
 	}
 
 	cfg.respondWithComponent(w, "chess_gameboard.html", *data)
@@ -470,7 +471,7 @@ func (cfg *configdata) handleMove(w http.ResponseWriter, r *http.Request) {
 			delete(cfg.GameData, data.ID)
 			delete(cfg.Games, data.ID)
 		} else {
-			data.Status = fmt.Sprintf("%s's Turn!", data.Active)
+			data.Status = fmt.Sprintf("%s played %s, %s's Turn!", chessNames[^game.EBE.Active&0b1], gameMove, data.Active)
 		}
 		if promote {
 			compName = "promotion.html"
@@ -561,7 +562,7 @@ func (cfg *configdata) handleBotTurn(w http.ResponseWriter, r *http.Request) {
 			delete(cfg.GameData, data.ID)
 			delete(cfg.Games, data.ID)
 		} else {
-			data.Status = fmt.Sprintf("%s's Turn!", data.Active)
+			data.Status = fmt.Sprintf("%s played %s, %s's Turn!", chessNames[^game.EBE.Active&0b1], move, data.Active)
 		}
 		compName = "chess_gameboard.html"
 	default:
