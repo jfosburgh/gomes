@@ -119,7 +119,7 @@ func fillTTTCells(game *tictactoe.TicTacToeGame, gameState *twoplayergame) []cel
 	return cells
 }
 
-func fillChessCells(game *chess.ChessGame, gameState *twoplayergame, selected int) []cell {
+func fillChessCells(game *chess.ChessGame, gameState *twoplayergame, selected int, promoting bool) []cell {
 	cells := make([]cell, 64)
 	gameActive := gameState.Started && !gameState.Ended
 	playerTurn := gameState.Player == "" || chessPlayers[gameState.Active] == game.EBE.Active<<3
@@ -153,12 +153,18 @@ func fillChessCells(game *chess.ChessGame, gameState *twoplayergame, selected in
 			validTarget := slices.Contains(validTargets, i)
 			if validTarget {
 				classes += " target"
+
+				fmt.Printf("checking for promotion: %04b, %04b, %d\n", game.EBE.Board[selected]&0b0111, chess.PAWN, rank)
+				if game.EBE.Board[selected]&0b0111 == chess.PAWN && (rank == 7 || rank == 0) {
+					fmt.Printf("this was a valid promotion")
+					classes += " promote"
+				}
 			}
 
 			activeSide := (game.EBE.Board[i]&0b1000 == side) && game.EBE.Board[i] != chess.EMPTY
 
 			moveable := playerTurn && activeSide
-			cells[cellCount].Clickable = gameActive && (moveable || validTarget)
+			cells[cellCount].Clickable = gameActive && (moveable || validTarget) && !promoting
 			if cells[cellCount].Clickable {
 				classes += " enabled"
 			}
@@ -189,7 +195,7 @@ func (cfg *configdata) handleNewPage(w http.ResponseWriter, r *http.Request) {
 		game.Active = "White"
 
 		game.State = chessGame.EBE.ToFEN()
-		game.Cells = fillChessCells(chessGame, &game, -1)
+		game.Cells = fillChessCells(chessGame, &game, -1, false)
 	case "tictactoe":
 		ticTacToeGame := tictactoe.NewGame()
 		cfg.Games[game.ID] = ticTacToeGame
@@ -213,7 +219,7 @@ func (cfg *configdata) handleNewPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (cfg *configdata) respondWithComponent(w http.ResponseWriter, t string, data twoplayergame) {
+func (cfg *configdata) respondWithComponent(w http.ResponseWriter, t string, data any) {
 	// fmt.Printf("generating template %s with \n%+v\n", t, data)
 	err := cfg.Components[t].Execute(w, data)
 	if err != nil {
@@ -267,7 +273,7 @@ func (cfg *configdata) handleStartGame(w http.ResponseWriter, r *http.Request) {
 			game.SearchDepth, _ = strconv.Atoi(r.FormValue("depth"))
 			fmt.Printf("setting game parameters:\nPlayer: %s\nSearch Depth: %d\n", data.Player, game.SearchDepth)
 		}
-		data.Cells = fillChessCells(game, data, -1)
+		data.Cells = fillChessCells(game, data, -1, false)
 		data.Status = "White makes the first move!"
 		compName = "chess_gameboard.html"
 	default:
@@ -312,7 +318,7 @@ func (cfg *configdata) handleSelect(w http.ResponseWriter, r *http.Request) {
 	case *chess.ChessGame:
 		game := gameInterface.(*chess.ChessGame)
 		fmt.Printf("returning chess board with piece %d selected\n", location)
-		data.Cells = fillChessCells(game, data, location)
+		data.Cells = fillChessCells(game, data, location, false)
 		compName = "chess_gameboard.html"
 	default:
 		fmt.Printf("unhandled game type: %t\n", gameInterface)
@@ -321,6 +327,58 @@ func (cfg *configdata) handleSelect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg.respondWithComponent(w, compName, *data)
+}
+
+func (cfg *configdata) handlePromotion(w http.ResponseWriter, r *http.Request) {
+	gameInterface, data, err := cfg.getGameFromRequest(r)
+	if err != nil {
+		fmt.Printf("error retrieving game from id:\n%s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	queries := r.URL.Query()
+	start, err := strconv.Atoi(queries.Get("start"))
+	if err != nil {
+		fmt.Println("couldn't parse start")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	end, err := strconv.Atoi(queries.Get("end"))
+	if err != nil {
+		fmt.Println("couldn't parse end")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	promote, err := strconv.Atoi(queries.Get("promote"))
+	if err != nil {
+		fmt.Println("couldn't parse promote")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	game := gameInterface.(*chess.ChessGame)
+
+	gameMove, valid := game.MoveFromLocations(start, end)
+	if !valid {
+		fmt.Printf("requested move is invalid: %d->%d\n", start, end)
+		w.WriteHeader(http.StatusBadRequest)
+	}
+	gameMove.Promotion = promote
+	game.MakeMove(gameMove)
+	data.Active = chessNames[game.EBE.Active]
+
+	data.Cells = fillChessCells(game, data, -1, false)
+	data.Ended = len(game.GetLegalMoves()) == 0
+	if data.Ended {
+		data.Status = fmt.Sprintf("%s Wins!", chessNames[^(game.EBE.Active)&0b1])
+
+		delete(cfg.GameData, data.ID)
+		delete(cfg.Games, data.ID)
+	} else {
+		data.Status = fmt.Sprintf("%s's Turn!", data.Active)
+	}
+
+	cfg.respondWithComponent(w, "chess_gameboard.html", *data)
 }
 
 func (cfg *configdata) handleMove(w http.ResponseWriter, r *http.Request) {
@@ -391,10 +449,15 @@ func (cfg *configdata) handleMove(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("requested move is invalid: %d->%d\n", src, move)
 			w.WriteHeader(http.StatusBadRequest)
 		}
+		if promote {
+			gameMove.Promotion = gameMove.Piece
+		}
 		game.MakeMove(gameMove)
-		data.Active = chessNames[game.EBE.Active]
+		if !promote {
+			data.Active = chessNames[game.EBE.Active]
+		}
 
-		data.Cells = fillChessCells(game, data, -1)
+		data.Cells = fillChessCells(game, data, -1, promote)
 		data.Ended = len(game.GetLegalMoves()) == 0
 		if data.Ended {
 			data.Status = fmt.Sprintf("%s Wins!", chessNames[^(game.EBE.Active)&0b1])
@@ -404,7 +467,38 @@ func (cfg *configdata) handleMove(w http.ResponseWriter, r *http.Request) {
 		} else {
 			data.Status = fmt.Sprintf("%s's Turn!", data.Active)
 		}
-		compName = "chess_gameboard.html"
+		if promote {
+			compName = "promotion.html"
+			data.Status = fmt.Sprintf("%s, choose your promotion!", data.Active)
+			game.UnmakeMove(gameMove)
+			type promoteoption struct {
+				Piece   int
+				Picture string
+			}
+			type promotedata struct {
+				GameData twoplayergame
+				Start    int
+				End      int
+				Options  [4]promoteoption
+			}
+			side := game.EBE.Active << 3
+			promoteData := promotedata{
+				*data,
+				src,
+				move,
+				[4]promoteoption{
+					{side | chess.KNIGHT, chessPieces[side|chess.KNIGHT]},
+					{side | chess.ROOK, chessPieces[side|chess.ROOK]},
+					{side | chess.BISHOP, chessPieces[side|chess.BISHOP]},
+					{side | chess.QUEEN, chessPieces[side|chess.QUEEN]},
+				},
+			}
+
+			cfg.respondWithComponent(w, compName, promoteData)
+			return
+		} else {
+			compName = "chess_gameboard.html"
+		}
 	default:
 		fmt.Printf("unhandled game type: %t\n", gameInterface)
 		w.WriteHeader(http.StatusBadRequest)
@@ -454,7 +548,7 @@ func (cfg *configdata) handleBotTurn(w http.ResponseWriter, r *http.Request) {
 		game.MakeMove(move)
 		data.Active = chessNames[game.EBE.Active]
 
-		data.Cells = fillChessCells(game, data, -1)
+		data.Cells = fillChessCells(game, data, -1, false)
 		data.Ended = len(game.GetLegalMoves()) == 0
 		if data.Ended {
 			data.Status = fmt.Sprintf("%s Wins!", chessNames[^(game.EBE.Active)&0b1])
@@ -492,7 +586,12 @@ func newBrowserRouter() *http.ServeMux {
 	for _, match := range matches {
 
 		name := filepath.Base(match)
-		t := template.Must(template.New(name).Funcs(tempFuncs).ParseFiles(match))
+		var t *template.Template
+		if name == "promotion.html" {
+			t = template.Must(template.New(name).Funcs(tempFuncs).ParseFiles(match, "internal/routes/templates/components/chess_gameboard.html"))
+		} else {
+			t = template.Must(template.New(name).Funcs(tempFuncs).ParseFiles(match))
+		}
 
 		components[name] = t
 		fmt.Printf("added %s to components dict\n", name)
@@ -535,6 +634,7 @@ func newBrowserRouter() *http.ServeMux {
 	browserRouter.HandleFunc("POST /games/{id}", config.handleMove)
 	browserRouter.HandleFunc("POST /games/{id}/bot", config.handleBotTurn)
 	browserRouter.HandleFunc("POST /games/{id}/select", config.handleSelect)
+	browserRouter.HandleFunc("POST /games/{id}/promote", config.handlePromotion)
 
 	return browserRouter
 }

@@ -1,0 +1,14 @@
+<div class="outer-container">
+	{{ template "board" .GameData }}
+	<div class="promote-container">
+		{{ $start := .Start }}
+		{{ $end := .End }}
+		{{ $gameID := .GameData.ID }}
+		{{ range $index, $piece := .Options }}
+		<div class="chess-game-cell enabled" hx-swap="outerHTML" hx-target=".outer-container"
+			hx-post="/games/{{$gameID}}/promote?start={{$start}}&end={{$end}}&promote={{$piece.Piece}}">
+			{{$piece.Picture}}
+		</div>
+		{{ end }}
+	</div>
+</div>
