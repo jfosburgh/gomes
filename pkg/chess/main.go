@@ -6,11 +6,18 @@ import (
 )
 
 type ChessGame struct {
-	EBE         EBE
-	Bitboard    BitBoard
-	Moves       []Move
-	Captured    []int
-	SearchDepth int
+	EBE            EBE
+	Bitboard       BitBoard
+	Moves          []Move
+	Captured       []int
+	SearchDepth    int
+	Transpositions map[EBEBoard]TranspositionNode
+	SearchStart    time.Time
+}
+
+type TranspositionNode struct {
+	Value float64
+	Depth int
 }
 
 func NewGame() *ChessGame {
