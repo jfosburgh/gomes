@@ -458,9 +458,14 @@ func (cfg *configdata) handleMove(w http.ResponseWriter, r *http.Request) {
 		}
 
 		data.Cells = fillChessCells(game, data, -1, promote)
-		data.Ended = len(game.GetLegalMoves()) == 0
+		checkmate := len(game.GetLegalMoves()) == 0
+		draw := !checkmate && game.EBE.Halfmoves >= 100
+		data.Ended = checkmate || draw
 		if data.Ended {
 			data.Status = fmt.Sprintf("%s Wins!", chessNames[^(game.EBE.Active)&0b1])
+			if draw {
+				data.Status = "It's a tie!"
+			}
 
 			delete(cfg.GameData, data.ID)
 			delete(cfg.Games, data.ID)
