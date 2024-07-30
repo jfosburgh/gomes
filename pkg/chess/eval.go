@@ -7,28 +7,52 @@ import (
 )
 
 func (c *ChessGame) Search() ([]Move, []float64) {
-	fmt.Printf("starting search at depth %d\n", c.SearchDepth)
+	fmt.Printf("starting with max depth %d\n", c.MaxSearchDepth)
 	options := c.GetLegalMoves()
+
 	vals := make([]float64, len(options))
 	c.Transpositions = make(map[EBEBoard]TranspositionNode)
-	c.SearchStart = time.Now()
 
-	for depth := range c.SearchDepth {
+	c.SearchStart = time.Now()
+	c.SearchTimer = time.NewTimer(c.SearchTime)
+	defer c.SearchTimer.Stop()
+
+	for depth := range c.MaxSearchDepth {
+		finished := true
 		evaluated := 0
 		skipped := 0
 		if depth != 0 {
 			options = c.PreOrder(options)
 		}
+		searchVals := make([]float64, len(options))
 		for i, move := range options {
-			c.MakeMove(move)
-			var e int
-			v, e, s := c.Minimax(0, depth, math.Inf(-1), math.Inf(1))
-			vals[i] = v
-			evaluated += e
-			skipped += s
-			c.UnmakeMove(move)
+			select {
+			case <-c.SearchTimer.C:
+				finished = false
+			default:
+				c.MakeMove(move)
+				v, e, s := c.Minimax(0, depth, math.Inf(-1), math.Inf(1))
+				c.UnmakeMove(move)
+				if e == -1 {
+					finished = false
+					fmt.Println("setting finished false")
+				}
+
+				searchVals[i] = v
+				evaluated += e
+				skipped += s
+			}
+			if !finished {
+				break
+			}
 		}
+		if !finished {
+			fmt.Printf("max search time (%dms) reached before search to depth %d finished, exited without updating vals\n", c.SearchTime.Milliseconds(), depth)
+			break
+		}
+
 		fmt.Printf("searched %d nodes, skipped %d to depth %d, %dms since search start\n", evaluated, skipped, depth, time.Since(c.SearchStart).Milliseconds())
+		vals = searchVals
 	}
 
 	options, vals = sortMoves(options, vals, true)
@@ -37,6 +61,7 @@ func (c *ChessGame) Search() ([]Move, []float64) {
 	for i := range options {
 		fmt.Printf(" > %s == %f\n", options[i], vals[i])
 	}
+	fmt.Printf("total search time: %dms\n", time.Since(c.SearchStart).Milliseconds())
 
 	return options, vals
 }
@@ -96,35 +121,54 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 	if c.EBE.Active<<3 == WHITE {
 		value := math.Inf(-1)
 		for _, move := range moves {
-			c.MakeMove(move)
-			v, e, s := c.Minimax(depth+1, stopDepth, alpha, beta)
-			value = max(value, v)
-			evaluated += e
-			skipped += s
-			c.UnmakeMove(move)
+			select {
+			case <-c.SearchTimer.C:
+				fmt.Println("boop")
+				return 0, -1, 0
+			default:
+				c.MakeMove(move)
+				v, e, s := c.Minimax(depth+1, stopDepth, alpha, beta)
+				c.UnmakeMove(move)
+				if e == -1 {
+					return 0, -1, 0
+				}
 
-			checked += 1
-			if value > beta {
-				break
+				value = max(value, v)
+				evaluated += e
+				skipped += s
+
+				checked += 1
+				if value > beta {
+					break
+				}
+				alpha = max(alpha, value)
 			}
-			alpha = max(alpha, value)
 		}
 		return value, evaluated, skipped + len(moves) - checked
 	} else {
 		value := math.Inf(1)
 		for _, move := range moves {
-			c.MakeMove(move)
-			v, e, s := c.Minimax(depth+1, stopDepth, alpha, beta)
-			value = min(value, v)
-			evaluated += e
-			skipped += s
-			c.UnmakeMove(move)
+			select {
+			case <-c.SearchTimer.C:
+				return 0, -1, 0
+			default:
+				c.MakeMove(move)
+				v, e, s := c.Minimax(depth+1, stopDepth, alpha, beta)
+				c.UnmakeMove(move)
+				if e == -1 {
+					return 0, -1, 0
+				}
 
-			checked += 1
-			if value < alpha {
-				break
+				value = min(value, v)
+				evaluated += e
+				skipped += s
+
+				checked += 1
+				if value < alpha {
+					break
+				}
+				beta = min(beta, value)
 			}
-			beta = min(beta, value)
 		}
 		return value, evaluated, skipped + len(moves) - checked
 	}

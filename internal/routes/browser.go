@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jfosburgh/gomes/pkg/chess"
 	"github.com/jfosburgh/gomes/pkg/tictactoe"
@@ -271,8 +272,10 @@ func (cfg *configdata) handleStartGame(w http.ResponseWriter, r *http.Request) {
 		if mode == "pvb" {
 			data.Player = r.FormValue("playerID")
 			depth, _ := strconv.Atoi(r.FormValue("depth"))
-			game.SearchDepth = depth * 2
-			fmt.Printf("setting game parameters:\nPlayer: %s\nSearch Depth: %d\n", data.Player, game.SearchDepth)
+			searchTime, _ := strconv.Atoi(r.FormValue("time"))
+			game.MaxSearchDepth = depth * 2
+			game.SearchTime = time.Duration(searchTime) * time.Second
+			fmt.Printf("setting game parameters:\nPlayer: %s\nSearch Depth: %d\n", data.Player, game.MaxSearchDepth)
 		}
 		data.Cells = fillChessCells(game, data, -1, false)
 		data.Status = "White makes the first move!"

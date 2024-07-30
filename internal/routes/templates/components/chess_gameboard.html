@@ -21,12 +21,19 @@
 			<label for="pvb">Black</label><br>
 			<p>(White goes first)</p>
 
-			<label for="depth">Bot Search Depth</label>
+			<label for="depth">Bot Max Search Depth</label>
 			<select id="depth" required name="depth">
 				<option value="1">1 ply</option>
 				<option value="2">2 ply</option>
 				<option value="3">3 ply</option>
 			</select>
+			<br>
+
+			<label for="time">Bot Search Time</label>
+			<br>
+			1
+			<input type="range" id="time" name="time" min="1" max="10">
+			10
 		</section>
 	</form>
 	{{ end }}

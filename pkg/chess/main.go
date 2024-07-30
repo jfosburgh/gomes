@@ -10,9 +10,11 @@ type ChessGame struct {
 	Bitboard       BitBoard
 	Moves          []Move
 	Captured       []int
-	SearchDepth    int
+	MaxSearchDepth int
 	Transpositions map[EBEBoard]TranspositionNode
 	SearchStart    time.Time
+	SearchTime     time.Duration
+	SearchTimer    *time.Timer
 }
 
 type TranspositionNode struct {
@@ -22,9 +24,10 @@ type TranspositionNode struct {
 
 func NewGame() *ChessGame {
 	c := ChessGame{
-		EBE:         DefaultBoard(),
-		Bitboard:    make(BitBoard),
-		SearchDepth: 1,
+		EBE:            DefaultBoard(),
+		Bitboard:       make(BitBoard),
+		MaxSearchDepth: 4,
+		SearchTime:     2,
 	}
 
 	c.Bitboard.FromEBE(c.EBE.Board)
