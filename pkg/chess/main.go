@@ -58,6 +58,14 @@ func copyBoard(source EBEBoard) EBEBoard {
 }
 
 func (c *ChessGame) BestMove() Move {
+	codebookMove, ok := ChooseFromCodebook(c.EBE.Board, c.EBE.Active)
+	if ok {
+		fmt.Printf("selected move from codebook: %+v\n", codebookMove)
+		return codebookMove
+	}
+
+	fmt.Printf("board not in codebook, searching\n")
+
 	options, _ := c.Search()
 	if c.EBE.Active<<3 == WHITE {
 		return options[len(options)-1]
