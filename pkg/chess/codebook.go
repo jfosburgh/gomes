@@ -30,6 +30,7 @@ var (
 
 	PGN_SOURCES = []string{
 		"./pkg/chess/Carlsen.pgn",
+		"./pkg/chess/twic1555.pgn",
 	}
 )
 
@@ -70,7 +71,6 @@ func ChooseFromCodebook(state EBEBoard, active int) (Move, bool) {
 		return Move{}, false
 	}
 
-	fmt.Printf("Selecting move from codebook entries: %+v\n", activePlayerEntries)
 	return activePlayerEntries[rand.Intn(len(activePlayerEntries))], true
 }
 
@@ -81,20 +81,24 @@ func ReadPGNToCodebook(filepath string, moveLimit int) error {
 	}
 
 	ps := pgn.NewPGNScanner(f)
+	processed := 0
+	skipped := 0
 	for ps.Next() {
 		g := NewGame()
 
 		pgnGame, err := ps.Scan()
 		if err != nil {
-			return err
+			skipped += 1
+			continue
 		}
+
+		processed += 1
 
 		for i, pgnMove := range pgnGame.Moves {
 			if i >= moveLimit {
 				break
 			}
 
-			fmt.Printf("PGN Move: %d -> %d, promote %d\n", pgnMove.From, pgnMove.To, pgnMove.Promote)
 			start := algebraic2Int(pgnMove.From.String())
 			end := algebraic2Int(pgnMove.To.String())
 			piece := g.EBE.Board[start]
@@ -124,6 +128,8 @@ func ReadPGNToCodebook(filepath string, moveLimit int) error {
 			g.MakeMove(move)
 		}
 	}
+
+	fmt.Printf("processed %d games, skipped %d games\n", processed, skipped)
 
 	return nil
 }

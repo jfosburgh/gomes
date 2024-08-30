@@ -131,10 +131,7 @@ func fillChessCells(game *chess.ChessGame, gameState *twoplayergame, selected in
 		fmt.Printf("valid moves for %d: %+v\n", selected, validTargets)
 	}
 
-	fmt.Printf("playerTurn: %+v\n", playerTurn)
-
 	side := game.EBE.Active << 3
-	fmt.Printf("side: %04b\n", side)
 
 	cellCount := 0
 	for rank := 7; rank >= 0; rank-- {
@@ -275,7 +272,6 @@ func (cfg *configdata) handleStartGame(w http.ResponseWriter, r *http.Request) {
 			searchTime, _ := strconv.Atoi(r.FormValue("time"))
 			game.MaxSearchDepth = depth * 2
 			game.SearchTime = time.Duration(searchTime) * time.Second
-			fmt.Printf("setting game parameters:\nPlayer: %s\nSearch Depth: %d\n", data.Player, game.MaxSearchDepth)
 		}
 		data.Cells = fillChessCells(game, data, -1, false)
 		data.Status = "White makes the first move!"

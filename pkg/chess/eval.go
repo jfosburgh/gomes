@@ -103,12 +103,16 @@ func (c *ChessGame) PreOrder(moves []Move) []Move {
 }
 
 func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64, int, int) {
-	if depth >= stopDepth || c.EBE.Halfmoves >= 100 {
-		return c.Evaluate(depth), 1, 0
-	}
-
 	moves := c.GetLegalMoves()
 	if len(moves) == 0 {
+		if c.EBE.Active<<3 == BLACK {
+			return 1e6, 1, 0
+		}
+
+		return -1e6, 1, 0
+	}
+
+	if depth >= stopDepth || c.EBE.Halfmoves >= 100 {
 		return c.Evaluate(depth), 1, 0
 	}
 
