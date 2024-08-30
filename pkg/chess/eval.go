@@ -112,8 +112,12 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 		return -1e6, 1, 0
 	}
 
-	if depth >= stopDepth || c.EBE.Halfmoves >= 100 {
+	if depth >= stopDepth {
 		return c.Evaluate(depth), 1, 0
+	}
+
+	if c.EBE.Halfmoves >= 100 {
+		return 0, 1, 0
 	}
 
 	evaluated := 0
@@ -124,6 +128,7 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 
 	if c.EBE.Active<<3 == WHITE {
 		value := math.Inf(-1)
+		betaHit := false
 		for _, move := range moves {
 			select {
 			case <-c.SearchTimer.C:
@@ -143,14 +148,20 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 
 				checked += 1
 				if value > beta {
+					betaHit = true
 					break
 				}
 				alpha = max(alpha, value)
+			}
+
+			if betaHit {
+				break
 			}
 		}
 		return value, evaluated, skipped + len(moves) - checked
 	} else {
 		value := math.Inf(1)
+		alphaHit := false
 		for _, move := range moves {
 			select {
 			case <-c.SearchTimer.C:
@@ -169,11 +180,17 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 
 				checked += 1
 				if value < alpha {
+					alphaHit = true
 					break
 				}
 				beta = min(beta, value)
 			}
+
+			if alphaHit {
+				break
+			}
 		}
+
 		return value, evaluated, skipped + len(moves) - checked
 	}
 }
