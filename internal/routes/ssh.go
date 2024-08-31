@@ -312,7 +312,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 							gameMove, valid := game.MoveFromLocations(src, move)
 							if !valid {
-								m.moveSrc = move
+								m.moveSrc = flipRank(move)
 								game := gameInterface.(*chess.ChessGame)
 								data.Cells = fillChessCells(game, data, move, false)
 								break
