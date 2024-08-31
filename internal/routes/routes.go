@@ -13,6 +13,7 @@ func NewRouter() *http.ServeMux {
 	router := http.NewServeMux()
 
 	router.Handle("/", newBrowserRouter())
+	ServeSSH()
 
 	return router
 }
