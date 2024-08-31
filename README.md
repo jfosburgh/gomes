@@ -19,8 +19,8 @@ SERVER_PORT=<port number>
 ### Connect to the Server
 Connect to the server and start playing!
 Currently supported clients are:
-- [ ] Browser 
-- [ ] TUI (terminal user interface)
+- [x] Browser 
+- [x] TUI (terminal user interface)
 - [ ] Generic JSON api
 <!-- #### TUI Instructions -->
 <!-- ```bash -->
@@ -31,7 +31,7 @@ Currently supported clients are:
 - [x] Tic-Tac-Toe
 - [ ] Connect4
 - [ ] Checkers
-- [ ] Chess
+- [x] Chess
 - [ ] Wordle
 and more to come!
 ## Technical Details
