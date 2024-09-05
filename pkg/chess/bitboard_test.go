@@ -9,7 +9,7 @@ const (
 	starting uint64 = 0b1111111111111111000000000000000000000000000000001111111111111111
 )
 
-func BitBoardEqual(t *testing.T, expected, actual BitBoard) {
+func BitBoardEqual(t *testing.T, expected, actual *BitBoard) {
 	for piece := range expected {
 		BitPieceEqual(t, piece, expected[piece], actual[piece])
 	}
@@ -32,14 +32,14 @@ func TestTo2DString(t *testing.T) {
 
 func TestStartingBitboard(t *testing.T) {
 	ebe := DefaultBoard()
-	bitboard := make(BitBoard)
+	bitboard := &BitBoard{}
 	bitboard.FromEBE(ebe.Board)
 
 	if bitboard.AllPieces() != starting {
 		t.Errorf(fmt.Sprintf("Expected 2d view doesn't match actual 2d view\nExpected:\n%s\n\nActual:\n%s", To2DString(starting), To2DString(bitboard.AllPieces())))
 	}
 
-	expected := BitBoard{}
+	expected := &BitBoard{}
 	expected[WHITE|PAWN] = uint64(65280)
 	expected[WHITE|ROOK] = uint64(129)
 	expected[WHITE|KNIGHT] = uint64(66)
@@ -91,7 +91,7 @@ func CorrectMoves(t *testing.T, b BitBoard, side int, expectedMoves uint64, gene
 
 func TestPawnMoveGeneration(t *testing.T) {
 	ebe := DefaultBoard()
-	bitboard := make(BitBoard)
+	bitboard := BitBoard{}
 	bitboard.FromEBE(ebe.Board)
 
 	expectedAttacks := uint64(0)
@@ -125,7 +125,7 @@ func TestPawnMoveGeneration(t *testing.T) {
 }
 
 func TestKnightMoveGeneration(t *testing.T) {
-	bitboard := make(BitBoard)
+	bitboard := BitBoard{}
 	bitboard[WHITE|KNIGHT] = uint64(0b01000010)
 	bitboard.UpdateSide(WHITE)
 	bitboard.UpdateSide(BLACK)
@@ -146,7 +146,7 @@ func TestKnightMoveGeneration(t *testing.T) {
 }
 
 func TestKingMoveGeneration(t *testing.T) {
-	bitboard := make(BitBoard)
+	bitboard := BitBoard{}
 	bitboard[WHITE|KING] = uint64(0b00001000)
 	bitboard.UpdateSide(WHITE)
 	bitboard.UpdateSide(BLACK)
@@ -167,7 +167,7 @@ func TestKingMoveGeneration(t *testing.T) {
 }
 
 func TestRookMoveGeneration(t *testing.T) {
-	bitboard := make(BitBoard)
+	bitboard := BitBoard{}
 	bitboard[WHITE|ROOK] = uint64(0b10000000)
 	bitboard.UpdateSide(WHITE)
 	bitboard.UpdateSide(BLACK)
@@ -183,7 +183,7 @@ func TestRookMoveGeneration(t *testing.T) {
 }
 
 func TestBishopMoveGeneration(t *testing.T) {
-	bitboard := make(BitBoard)
+	bitboard := BitBoard{}
 	bitboard[WHITE|BISHOP] = uint64(0b00100000)
 	bitboard.UpdateSide(WHITE)
 	bitboard.UpdateSide(BLACK)
@@ -199,7 +199,7 @@ func TestBishopMoveGeneration(t *testing.T) {
 }
 
 func TestQueenMoveGeneration(t *testing.T) {
-	bitboard := make(BitBoard)
+	bitboard := BitBoard{}
 	bitboard[WHITE|QUEEN] = uint64(0b00001000)
 	bitboard.UpdateSide(WHITE)
 	bitboard.UpdateSide(BLACK)
@@ -234,7 +234,7 @@ func TestDiagonalCross(t *testing.T) {
 
 func TestToPieceLocations(t *testing.T) {
 	ebe := DefaultBoard()
-	bitboard := make(BitBoard)
+	bitboard := BitBoard{}
 	bitboard.FromEBE(ebe.Board)
 
 	expected := []int{1, 6}

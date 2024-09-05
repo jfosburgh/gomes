@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-type BitBoard map[int]uint64
+type BitBoard [16]uint64
 
-func (b BitBoard) FromEBE(ebe EBEBoard) {
+func (b *BitBoard) FromEBE(ebe EBEBoard) {
 	for piece := range piece2String {
 		if piece != EMPTY {
 			b[piece] = 0
@@ -26,20 +26,20 @@ func (b BitBoard) FromEBE(ebe EBEBoard) {
 	b.UpdateSide(BLACK)
 }
 
-func (b BitBoard) UpdateSide(side int) {
+func (b *BitBoard) UpdateSide(side int) {
 	pieces := b.SidePieces(side)
 	b[side] = pieces
 }
 
-func (b BitBoard) AllPieces() uint64 {
+func (b *BitBoard) AllPieces() uint64 {
 	return b[WHITE] | b[BLACK]
 }
 
-func (b BitBoard) SidePieces(side int) uint64 {
+func (b *BitBoard) SidePieces(side int) uint64 {
 	return b[side|PAWN] | b[side|ROOK] | b[side|KNIGHT] | b[side|BISHOP] | b[side|QUEEN] | b[side|KING]
 }
 
-func (b BitBoard) SideThreatens(side int) uint64 {
+func (b *BitBoard) SideThreatens(side int) uint64 {
 	threatens, _ := b.PawnMoves(side)
 	threatens = threatens | b.RookMoves(side)
 	threatens = threatens | b.KnightMoves(side)
@@ -50,7 +50,7 @@ func (b BitBoard) SideThreatens(side int) uint64 {
 	return threatens
 }
 
-func (b BitBoard) InCheck(side int) bool {
+func (b *BitBoard) InCheck(side int) bool {
 	enemySide := enemy(side)
 	enemyBitboard := b[enemySide]
 	selfBitboard := b[side]
@@ -118,7 +118,7 @@ func (b BitBoard) InCheck(side int) bool {
 	// return b[side|KING]&b.SideThreatens(enemy(side)) != 0
 }
 
-func (b BitBoard) PawnMoves(side int) (uint64, uint64) {
+func (b *BitBoard) PawnMoves(side int) (uint64, uint64) {
 	selfBitboard := b[side]
 	pawns := b[side|PAWN]
 	allPieces := b.AllPieces()
@@ -149,13 +149,13 @@ func genPawnMoves(side int, selfBitboard, pawns, allPieces uint64) (uint64, uint
 	return potentialAttacks & (^selfBitboard), (singleAdvance | doubleAdvance) & (^allPieces)
 }
 
-func (b BitBoard) KnightMoves(side int) uint64 {
+func (b *BitBoard) KnightMoves(side int) uint64 {
 	selfBitboard := b[side]
 
 	return getKnightMoves(b[KNIGHT|side]) & (^selfBitboard)
 }
 
-func (b BitBoard) KingMoves(side int) uint64 {
+func (b *BitBoard) KingMoves(side int) uint64 {
 	selfBitboard := b[side]
 
 	moves := uint64(0)
@@ -178,7 +178,7 @@ func (b BitBoard) KingMoves(side int) uint64 {
 	return moves
 }
 
-func (b BitBoard) RookMoves(side int) uint64 {
+func (b *BitBoard) RookMoves(side int) uint64 {
 	enemyBitboard := b[enemy(side)]
 	selfBitboard := b[side]
 
@@ -195,7 +195,7 @@ func getRookMoves(enemyBitboard, selfBitboard, rooks uint64) uint64 {
 	return moves & (^selfBitboard)
 }
 
-func (b BitBoard) BishopMoves(side int) uint64 {
+func (b *BitBoard) BishopMoves(side int) uint64 {
 	enemyBitboard := b[enemy(side)]
 	selfBitboard := b[side]
 
@@ -212,7 +212,7 @@ func getBishopMoves(enemyBitboard, selfBitboard, bishops uint64) uint64 {
 	return moves & (^selfBitboard)
 }
 
-func (b BitBoard) QueenMoves(side int) uint64 {
+func (b *BitBoard) QueenMoves(side int) uint64 {
 	enemyBitboard := b[enemy(side)]
 	selfBitboard := b[side]
 
@@ -229,11 +229,11 @@ func getQueenMoves(enemyBitboard, selfBitboard, queens uint64) uint64 {
 	return moves & (^selfBitboard)
 }
 
-func (b BitBoard) Remove(piece, position int) {
+func (b *BitBoard) Remove(piece, position int) {
 	b[piece] = b[piece] & (^(0b1 << position))
 }
 
-func (b BitBoard) Add(piece, position int) {
+func (b *BitBoard) Add(piece, position int) {
 	b[piece] = b[piece] | (0b1 << position)
 }
 

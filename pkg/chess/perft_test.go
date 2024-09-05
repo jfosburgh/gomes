@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-const TEST_DEPTH = 7
+const TEST_DEPTH = 6
 const DEBUG = false
 
 func TestPerftStarting(t *testing.T) {

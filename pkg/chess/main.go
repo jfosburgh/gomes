@@ -7,7 +7,7 @@ import (
 
 type ChessGame struct {
 	EBE            EBE
-	Bitboard       BitBoard
+	Bitboard       *BitBoard
 	Moves          []Move
 	Captured       []int
 	MaxSearchDepth int
@@ -25,7 +25,7 @@ type TranspositionNode struct {
 func NewGame() *ChessGame {
 	c := ChessGame{
 		EBE:            DefaultBoard(),
-		Bitboard:       make(BitBoard),
+		Bitboard:       &BitBoard{},
 		MaxSearchDepth: 4,
 		SearchTime:     2,
 	}
@@ -42,7 +42,7 @@ func (c *ChessGame) SetStateFromFEN(fen string) {
 	c.Captured = []int{}
 }
 
-func copyBitboard(source, dest BitBoard) {
+func copyBitboard(source, dest *BitBoard) {
 	for piece := range source {
 		dest[piece] = source[piece]
 	}
@@ -159,7 +159,7 @@ func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
 		moveCount := 0
 		active := c.EBE.Active << 3
 
-		startingBitboard := make(BitBoard)
+		startingBitboard := &BitBoard{}
 		startingBoard := EBE{}
 		if debug {
 			copyBitboard(c.Bitboard, startingBitboard)
@@ -167,7 +167,7 @@ func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
 		}
 
 		c.MakeMove(move)
-		middleBitboard := make(BitBoard)
+		middleBitboard := &BitBoard{}
 		middleBoard := EBE{}
 		if debug {
 			copyBitboard(c.Bitboard, middleBitboard)
@@ -206,7 +206,7 @@ func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
 		fmt.Println()
 	}
 	if depth == startDepth {
-		fmt.Printf("perft evaluated to depth of %d in %dms\n", startDepth, time.Since(start).Milliseconds())
+		fmt.Printf("perft evaluated to depth of %d in %dns\n", startDepth, time.Since(start).Nanoseconds())
 	}
 
 	return count, resultString
