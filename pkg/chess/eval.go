@@ -3,8 +3,19 @@ package chess
 import (
 	"fmt"
 	"math"
+	"sync"
 	"time"
 )
+
+const PARALLEL_SEARCH = true
+
+type searchMsg struct {
+	index     int
+	val       float64
+	evaluated int
+	skipped   int
+	finished  bool
+}
 
 func (c *ChessGame) Search() ([]Move, []float64) {
 	fmt.Printf("starting with max depth %d\n", c.MaxSearchDepth)
@@ -17,35 +28,86 @@ func (c *ChessGame) Search() ([]Move, []float64) {
 	c.SearchTimer = time.NewTimer(c.SearchTime)
 	defer c.SearchTimer.Stop()
 
+	wg := sync.WaitGroup{}
+
 	for depth := range c.MaxSearchDepth {
 		finished := true
 		evaluated := 0
 		skipped := 0
+
 		if depth != 0 {
 			options = c.PreOrder(options)
 		}
-		searchVals := make([]float64, len(options))
-		for i, move := range options {
-			select {
-			case <-c.SearchTimer.C:
-				finished = false
-			default:
-				c.MakeMove(move)
-				v, e, s := c.Minimax(0, depth, math.Inf(-1), math.Inf(1))
-				c.UnmakeMove(move)
-				if e == -1 {
-					finished = false
-					fmt.Println("setting finished false")
-				}
 
-				searchVals[i] = v
-				evaluated += e
-				skipped += s
-			}
-			if !finished {
-				break
+		searchVals := make([]float64, len(options))
+		res := make(chan searchMsg, len(options))
+
+		for i, move := range options {
+			if PARALLEL_SEARCH {
+				clone := c.Clone()
+				wg.Add(1)
+
+				go func() {
+					defer wg.Done()
+
+					clone.MakeMove(move)
+					v, e, s := clone.Minimax(0, depth, math.Inf(-1), math.Inf(1))
+					clone.UnmakeMove(move)
+					if e == -1 {
+						finished = false
+					}
+
+					res <- searchMsg{
+						index:     i,
+						val:       v,
+						evaluated: e,
+						skipped:   s,
+						finished:  finished,
+					}
+
+				}()
+			} else {
+				select {
+				case <-c.SearchTimer.C:
+					finished = false
+					break
+				default:
+					c.MakeMove(move)
+					v, e, s := c.Minimax(0, depth, math.Inf(-1), math.Inf(1))
+					c.UnmakeMove(move)
+					if e == -1 {
+						finished = false
+					}
+
+					res <- searchMsg{
+						index:     i,
+						val:       v,
+						evaluated: e,
+						skipped:   s,
+						finished:  finished,
+					}
+				}
+				if !finished {
+					break
+				}
 			}
 		}
+
+		if finished {
+			for range options {
+				msg := <-res
+
+				finished = finished && msg.finished
+				if !finished {
+					break
+				}
+
+				searchVals[msg.index] = msg.val
+				evaluated += msg.evaluated
+				skipped += msg.skipped
+			}
+		}
+
 		if !finished {
 			fmt.Printf("max search time (%dms) reached before search to depth %d finished, exited without updating vals\n", c.SearchTime.Milliseconds(), depth)
 			break
@@ -88,7 +150,11 @@ func (c *ChessGame) PreOrder(moves []Move) []Move {
 	vals := make([]float64, len(moves))
 	for i := range len(moves) {
 		c.MakeMove(moves[i])
+
+		c.TranspositionMutex.RLock()
 		v, ok := c.Transpositions[c.EBE.Board]
+		c.TranspositionMutex.RUnlock()
+
 		if !ok {
 			// TODO: replace with guestimate based on move
 			vals[i] = 0
@@ -196,12 +262,18 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 }
 
 func (c *ChessGame) Evaluate(currentDepth int) float64 {
+	c.TranspositionMutex.RLock()
 	t, ok := c.Transpositions[c.EBE.Board]
+	c.TranspositionMutex.RUnlock()
+
 	if !ok || t.Depth < currentDepth {
 		score := float64(c.Material(c.EBE.Active<<3) - c.Material(enemy(c.EBE.Active<<3)))
 		if c.EBE.Active<<3 == BLACK {
 			score *= -1
 		}
+
+		c.TranspositionMutex.Lock()
+		defer c.TranspositionMutex.Unlock()
 		c.Transpositions[c.EBE.Board] = TranspositionNode{
 			Depth: currentDepth,
 			Value: score,
