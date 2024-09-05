@@ -158,8 +158,15 @@ func (b *BitBoard) KnightMoves(side int) uint64 {
 func (b *BitBoard) KingMoves(side int) uint64 {
 	selfBitboard := b[side]
 
-	moves := uint64(0)
 	king := b[KING|side]
+
+	moves := getKingMoves(king) & (^selfBitboard)
+
+	return moves
+}
+
+func getKingMoves(king uint64) uint64 {
+	moves := uint64(0)
 	rank1 := rankMask(1)
 	rank8 := rankMask(8)
 	file1 := fileMask(1)
@@ -172,9 +179,6 @@ func (b *BitBoard) KingMoves(side int) uint64 {
 	moves = moves | ((king & (^(rank1 | file8))) >> NORTHWEST)
 	moves = moves | ((king & (^(rank8 | file1))) << NORTHWEST)
 	moves = moves | ((king & (^(rank1 | file1))) >> NORTHEAST)
-
-	moves = moves & (^selfBitboard)
-
 	return moves
 }
 

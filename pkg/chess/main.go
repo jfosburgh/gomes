@@ -26,7 +26,16 @@ type TranspositionNode struct {
 	Depth int
 }
 
+func Init() {
+	InitCodebook()
+	InitLookups()
+}
+
 func NewGame() *ChessGame {
+	if !LOOKUPS_INITIALIZED {
+		InitLookups()
+	}
+
 	c := ChessGame{
 		EBE:                DefaultBoard(),
 		Bitboard:           &BitBoard{},

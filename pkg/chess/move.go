@@ -5,6 +5,13 @@ import (
 	"math"
 )
 
+var (
+	KNIGHT_LOOKUP = [64]uint64{}
+	KING_LOOKUP   = [64]uint64{}
+
+	LOOKUPS_INITIALIZED = false
+)
+
 type Move struct {
 	Piece int
 	Start int
@@ -17,6 +24,15 @@ type Move struct {
 	Halfmoves       int
 	CastlingRights  int
 	EnPassantTarget int
+}
+
+func InitLookups() {
+	for i := range 64 {
+		KNIGHT_LOOKUP[i] = getKnightMoves(0b1 << i)
+		KING_LOOKUP[i] = getKingMoves(0b1 << i)
+	}
+
+	LOOKUPS_INITIALIZED = true
 }
 
 func (m Move) String() string {
@@ -66,9 +82,8 @@ func (c *ChessGame) GeneratePseudoLegal() []Move {
 func (c *ChessGame) GeneratePseudoLegalKing(side int) []Move {
 	moves := []Move{}
 
-	kingMoves := c.Bitboard.KingMoves(side)
-	moveLocs := toPieceLocations(kingMoves)
 	kingLoc := toPieceLocations(c.Bitboard[side|KING])[0]
+	moveLocs := toPieceLocations(KING_LOOKUP[kingLoc] & (^c.Bitboard[side]))
 
 	for _, moveLoc := range moveLocs {
 		moves = append(moves, Move{
@@ -211,12 +226,10 @@ func (c *ChessGame) GeneratePseudoLegalRook(side int) []Move {
 func (c *ChessGame) GeneratePseudoLegalKnight(side int) []Move {
 	moves := []Move{}
 
-	knightMoves := c.Bitboard.KnightMoves(side)
 	knightLocs := toPieceLocations(c.Bitboard[side|KNIGHT])
 
 	for _, knightLoc := range knightLocs {
-		pieceMoves := knightMoves & getKnightMoves(uint64(0b1<<knightLoc))
-		moveLocs := toPieceLocations(pieceMoves)
+		moveLocs := toPieceLocations(KNIGHT_LOOKUP[knightLoc] & (^c.Bitboard[side]))
 
 		for _, moveLoc := range moveLocs {
 			moves = append(moves, Move{

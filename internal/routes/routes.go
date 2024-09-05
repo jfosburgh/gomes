@@ -8,7 +8,7 @@ import (
 
 func NewRouter() *http.ServeMux {
 
-	chess.InitCodebook()
+	chess.Init()
 
 	router := http.NewServeMux()
 
