@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -24,9 +23,7 @@ type responseMsg struct{}
 
 func waitForActivity(sub chan struct{}) tea.Cmd {
 	return func() tea.Msg {
-		fmt.Println("waiting for ping")
 		msg := responseMsg(<-sub)
-		fmt.Println("received ping")
 		return msg
 	}
 }
@@ -41,7 +38,6 @@ func (m ModelTTT) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Height = msg.Height
 		m.Width = msg.Width
 	case responseMsg:
-		fmt.Println("processing bot ping")
 		move := m.game.BestMove()
 		m.game.MakeMove(move)
 		var winner int
@@ -78,8 +74,6 @@ func (m ModelTTT) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.botTurn = m.data.Active != m.data.Player && m.data.Player != "" && !m.data.Ended
 			if m.botTurn {
 				go func() {
-					time.Sleep(1 * time.Second)
-					fmt.Println("sending ping")
 					m.botChan <- responseMsg{}
 				}()
 				return m, tea.Batch(waitForActivity(m.botChan), nil)
@@ -131,8 +125,6 @@ func (m ModelTTT) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.botTurn = m.data.Active != m.data.Player && m.data.Player != "" && !m.data.Ended
 			if m.botTurn {
 				go func() {
-					time.Sleep(1 * time.Second)
-					fmt.Println("sending ping")
 					m.botChan <- responseMsg{}
 				}()
 				return m, tea.Batch(waitForActivity(m.botChan), nil)
@@ -294,8 +286,6 @@ func (m ModelTTTSettings) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				if next.botTurn {
 					go func() {
-						time.Sleep(1 * time.Second)
-						fmt.Println("sending ping")
 						next.botChan <- responseMsg{}
 					}()
 				}

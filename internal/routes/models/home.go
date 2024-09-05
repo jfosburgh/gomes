@@ -64,6 +64,7 @@ func (m ModelHome) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					modes: []string{
 						"Player vs. Player",
 						"Player vs. Bot",
+						"Bot vs. Bot",
 					},
 					players: []string{
 						"White",

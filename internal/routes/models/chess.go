@@ -39,19 +39,29 @@ func (m ModelChess) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Height = msg.Height
 		m.Width = msg.Width
 	case responseMsg:
-		fmt.Println("processing bot ping")
 		move := m.game.BestMove()
 		m.game.MakeMove(move)
 		m.data.Active = utils.ChessNames[m.game.EBE.Active]
 
 		m.data.Cells = utils.FillChessCells(m.game, m.data, -1, false)
-		m.data.Ended = len(m.game.GetLegalMoves()) == 0
+		m.data.Ended = len(m.game.GetLegalMoves()) == 0 || m.game.EBE.Halfmoves >= 100
 		if m.data.Ended {
-			m.data.Status = fmt.Sprintf("%s Wins!", utils.ChessNames[^(m.game.EBE.Active)&0b1])
+			if m.game.EBE.Halfmoves >= 100 {
+				m.data.Status = "Enforcing 50-move rule, it's a tie"
+			} else {
+				m.data.Status = fmt.Sprintf("%s Wins!", utils.ChessNames[^(m.game.EBE.Active)&0b1])
+			}
 		} else {
 			m.data.Status = fmt.Sprintf("%s played %s, %s's Turn!", utils.ChessNames[^m.game.EBE.Active&0b1], move, m.data.Active)
 		}
-		m.botTurn = false
+
+		m.botTurn = m.data.Active != m.data.Player && m.data.Player != "" && !m.data.Ended
+		if m.botTurn {
+			go func() {
+				m.botChan <- responseMsg{}
+			}()
+			return m, tea.Batch(waitForActivity(m.botChan), nil)
+		}
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "r":
@@ -59,11 +69,13 @@ func (m ModelChess) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 
-			m.game = chess.NewGame()
+			nextGame := chess.NewGame()
+			nextGame.SearchTime = m.game.SearchTime
+			m.game = nextGame
 
 			m.data.Ended = false
 			m.data.Active = "White"
-			m.data.Status = "X goes first!"
+			m.data.Status = "White goes first!"
 
 			m.data.Cells = utils.FillChessCells(m.game, m.data, -1, false)
 
@@ -73,8 +85,6 @@ func (m ModelChess) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.botTurn = m.data.Active != m.data.Player && m.data.Player != "" && !m.data.Ended
 			if m.botTurn {
 				go func() {
-					time.Sleep(1 * time.Second)
-					fmt.Println("sending ping")
 					m.botChan <- responseMsg{}
 				}()
 				return m, tea.Batch(waitForActivity(m.botChan), nil)
@@ -164,7 +174,7 @@ func (m ModelChess) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.data.Ended {
 					m.data.Status = fmt.Sprintf("%s Wins!", utils.ChessNames[^(m.game.EBE.Active)&0b1])
 					if draw {
-						m.data.Status = "It's a tie!"
+						m.data.Status = "Enforcing 50-move rule, it's a tie!"
 					}
 				} else {
 					m.data.Status = fmt.Sprintf("%s played %s, %s's Turn!", utils.ChessNames[^m.game.EBE.Active&0b1], gameMove, m.data.Active)
@@ -191,8 +201,6 @@ func (m ModelChess) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.botTurn = m.data.Active != m.data.Player && m.data.Player != "" && !m.data.Ended
 			if m.botTurn {
 				go func() {
-					time.Sleep(time.Second / 2)
-					fmt.Println("sending ping")
 					m.botChan <- responseMsg{}
 				}()
 				return m, tea.Batch(waitForActivity(m.botChan), nil)
@@ -382,11 +390,13 @@ func (m ModelChessSettings) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				next.data.Active = "White"
+				next.game.MaxSearchDepth = m.depths[m.depthCursor]
+				next.game.SearchTime = time.Duration(m.times[m.timeCursor]) * time.Second
+
 				if m.modes[m.modeCursor] == "Player vs. Bot" {
 					next.data.Player = m.players[m.playerCursor]
-					next.game.MaxSearchDepth = m.depths[m.depthCursor]
-					next.game.SearchTime = time.Duration(m.times[m.timeCursor]) * time.Second
-					fmt.Println(next.game)
+				} else {
+					next.data.Player = "neither"
 				}
 
 				next.data.Started = true
@@ -397,8 +407,6 @@ func (m ModelChessSettings) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				if next.botTurn {
 					go func() {
-						time.Sleep(time.Second / 2)
-						fmt.Println("sending ping")
 						next.botChan <- responseMsg{}
 					}()
 				}
@@ -464,7 +472,7 @@ func (m ModelChessSettings) View() string {
 		playerString += fmt.Sprintf(" %s %s\n", cursor, player)
 	}
 
-	if m.modes[m.modeCursor] == "Player vs. Bot" {
+	if m.modes[m.modeCursor] != "Player vs. Player" {
 		s = lipgloss.JoinVertical(lipgloss.Left, s, m.TxtStyle.Render(playerString))
 	} else {
 		s = lipgloss.JoinVertical(lipgloss.Left, s, m.QuitStyle.Render(playerString))
@@ -487,7 +495,7 @@ func (m ModelChessSettings) View() string {
 		depthString += fmt.Sprintf(" %s %d ply\n", cursor, depth)
 	}
 
-	if m.modes[m.modeCursor] == "Player vs. Bot" {
+	if m.modes[m.modeCursor] != "Player vs. Player" {
 		s = lipgloss.JoinVertical(lipgloss.Left, s, m.TxtStyle.Render(depthString))
 	} else {
 		s = lipgloss.JoinVertical(lipgloss.Left, s, m.QuitStyle.Render(depthString))
@@ -510,7 +518,7 @@ func (m ModelChessSettings) View() string {
 		timeString += fmt.Sprintf(" %s %ds\n", cursor, seconds)
 	}
 
-	if m.modes[m.modeCursor] == "Player vs. Bot" {
+	if m.modes[m.modeCursor] != "Player vs. Player" {
 		s = lipgloss.JoinVertical(lipgloss.Left, s, m.TxtStyle.Render(timeString))
 	} else {
 		s = lipgloss.JoinVertical(lipgloss.Left, s, m.QuitStyle.Render(timeString))

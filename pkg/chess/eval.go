@@ -30,7 +30,8 @@ func (c *ChessGame) Search() ([]Move, []float64) {
 
 	wg := sync.WaitGroup{}
 
-	for depth := range c.MaxSearchDepth {
+	depth := 0
+	for {
 		finished := true
 		evaluated := 0
 		skipped := 0
@@ -115,6 +116,8 @@ func (c *ChessGame) Search() ([]Move, []float64) {
 
 		fmt.Printf("searched %d nodes, skipped %d to depth %d, %dms since search start\n", evaluated, skipped, depth, time.Since(c.SearchStart).Milliseconds())
 		vals = searchVals
+
+		depth++
 	}
 
 	options, vals = sortMoves(options, vals, true)

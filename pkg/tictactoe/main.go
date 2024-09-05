@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 )
 
 var (
@@ -180,6 +181,7 @@ func (t *TicTacToeGame) BestMove() int {
 	options, _ := t.Search()
 	// fmt.Printf("Board:\n%s\nMoves: %+v\nVals:  %+v\n", t.State.Board, options, vals)
 
+	time.Sleep(time.Second)
 	if t.State.Active == 1 {
 		return options[len(options)-1]
 	}

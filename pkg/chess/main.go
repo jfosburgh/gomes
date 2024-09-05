@@ -2,6 +2,8 @@ package chess
 
 import (
 	"fmt"
+	"math/rand"
+	"slices"
 	"sync"
 	"time"
 )
@@ -80,20 +82,36 @@ func copyBoard(source EBEBoard) EBEBoard {
 }
 
 func (c *ChessGame) BestMove() Move {
-	// codebookMove, ok := ChooseFromCodebook(c.EBE.Board, c.EBE.Active)
-	// if ok {
-	// 	fmt.Printf("selected move from codebook: %+v\n", codebookMove)
-	// 	return codebookMove
-	// }
-	//
-	// fmt.Printf("board not in codebook, searching\n")
-
-	options, _ := c.Search()
-	if c.EBE.Active<<3 == WHITE {
-		return options[len(options)-1]
+	codebookMove, ok := ChooseFromCodebook(c.EBE.Board, c.EBE.Active)
+	if ok {
+		time.Sleep(c.SearchTime)
+		fmt.Printf("selected move from codebook: %+v\n", codebookMove)
+		return codebookMove
 	}
 
-	return options[0]
+	fmt.Printf("board not in codebook, searching\n")
+
+	options, vals := c.Search()
+	if c.EBE.Active<<3 == WHITE {
+		slices.Reverse(options)
+		slices.Reverse(vals)
+	}
+
+	topX := 0
+	for i := range len(vals) - 1 {
+		if vals[i+1] != vals[0] {
+			break
+		}
+		topX++
+	}
+
+	if topX == 0 {
+		return options[0]
+	}
+
+	fmt.Printf("Selecting from top %d moves equivalent scores\n", topX)
+
+	return options[rand.Intn(topX)]
 }
 
 func (c *ChessGame) MoveFromLocations(start, end int) (Move, bool) {
