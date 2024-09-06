@@ -140,7 +140,10 @@ func BenchmarkPerft(b *testing.B) {
 
 	c := NewGame()
 
-	for depth := range expectedCounts[:TEST_DEPTH] {
-		c.Perft(depth, depth, DEBUG)
+	for depth, expected := range expectedCounts[:TEST_DEPTH] {
+		actual, results := c.Perft(depth, depth, DEBUG)
+		if expected != actual {
+			b.Errorf("Expected legal move count (%d) does not equal computed count (%d) at depth %d for board\n%s\nPerft results:\n%s", expected, actual, depth, c.EBE.ToFEN(), results)
+		}
 	}
 }

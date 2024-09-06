@@ -257,6 +257,7 @@ func (c *ChessGame) GeneratePseudoLegalKnight(side int) []Move {
 func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 	// fmt.Printf("Generating pawn moves for side %d\nCurrent Board:\n%s\n", side, c.EBE.Board)
 
+	// moves := make([]Move, 0, 100)
 	moves := []Move{}
 	pawnThreatensWest, pawnThreatensEast, pawnAdvance, pawnDoubleAdvance := c.Bitboard.PawnMoves(side)
 	pawnAttacksWest := pawnThreatensWest & c.Bitboard.SidePieces(enemy(side))

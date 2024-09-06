@@ -18,7 +18,7 @@ type searchMsg struct {
 }
 
 func (c *ChessGame) Search() ([]Move, []float64) {
-	fmt.Printf("starting with max depth %d\n", c.MaxSearchDepth)
+	fmt.Printf("starting search with max depth %d\n", c.MaxSearchDepth)
 	options := c.GetLegalMoves()
 
 	vals := make([]float64, len(options))

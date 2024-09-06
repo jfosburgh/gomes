@@ -241,6 +241,8 @@ func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
 		}
 	}
 
+	wg.Wait()
+
 	for range moves {
 		count += <-res
 	}
