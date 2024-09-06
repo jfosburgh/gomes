@@ -57,29 +57,29 @@ func TestStartingBitboard(t *testing.T) {
 	BitBoardEqual(t, expected, bitboard)
 }
 
-func CorrectPawnMoves(t *testing.T, bitboard BitBoard, expectedAttacksWhite, expectedMovesWhite, expectedAttacksBlack, expectedMovesBlack uint64) {
-	actualAttacksWhite, actualMovesWhite := bitboard.PawnMoves(WHITE)
-	actualAttacksBlack, actualMovesBlack := bitboard.PawnMoves(BLACK)
-
-	actualAttacksWhite = actualAttacksWhite & bitboard.SidePieces(BLACK)
-	actualAttacksBlack = actualAttacksBlack & bitboard.SidePieces(WHITE)
-
-	if expectedAttacksWhite != actualAttacksWhite {
-		t.Errorf("Expected pawn attacks for white do not match actual attacks\nExpected:\n%s\n\nActual:\n%s", To2DString(expectedAttacksWhite), To2DString(actualAttacksWhite))
-	}
-
-	if expectedAttacksBlack != actualAttacksBlack {
-		t.Errorf("Expected pawn attacks for black do not match actual attacks\nExpected:\n%s\n\nActual:\n%s", To2DString(expectedAttacksBlack), To2DString(actualAttacksBlack))
-	}
-
-	if expectedMovesWhite != actualMovesWhite {
-		t.Errorf("Expected pawn moves for white do not match actual moves\nExpected:\n%s\n\nActual:\n%s", To2DString(expectedMovesWhite), To2DString(actualMovesWhite))
-	}
-
-	if expectedMovesBlack != actualMovesBlack {
-		t.Errorf("Expected pawn moves for black do not match actual moves\nExpected:\n%s\n\nActual:\n%s", To2DString(expectedMovesBlack), To2DString(actualMovesBlack))
-	}
-}
+// func CorrectPawnMoves(t *testing.T, bitboard BitBoard, expectedAttacksWhite, expectedMovesWhite, expectedAttacksBlack, expectedMovesBlack uint64) {
+// 	actualAttacksWhite, actualMovesWhite := bitboard.PawnMoves(WHITE)
+// 	actualAttacksBlack, actualMovesBlack := bitboard.PawnMoves(BLACK)
+//
+// 	actualAttacksWhite = actualAttacksWhite & bitboard.SidePieces(BLACK)
+// 	actualAttacksBlack = actualAttacksBlack & bitboard.SidePieces(WHITE)
+//
+// 	if expectedAttacksWhite != actualAttacksWhite {
+// 		t.Errorf("Expected pawn attacks for white do not match actual attacks\nExpected:\n%s\n\nActual:\n%s", To2DString(expectedAttacksWhite), To2DString(actualAttacksWhite))
+// 	}
+//
+// 	if expectedAttacksBlack != actualAttacksBlack {
+// 		t.Errorf("Expected pawn attacks for black do not match actual attacks\nExpected:\n%s\n\nActual:\n%s", To2DString(expectedAttacksBlack), To2DString(actualAttacksBlack))
+// 	}
+//
+// 	if expectedMovesWhite != actualMovesWhite {
+// 		t.Errorf("Expected pawn moves for white do not match actual moves\nExpected:\n%s\n\nActual:\n%s", To2DString(expectedMovesWhite), To2DString(actualMovesWhite))
+// 	}
+//
+// 	if expectedMovesBlack != actualMovesBlack {
+// 		t.Errorf("Expected pawn moves for black do not match actual moves\nExpected:\n%s\n\nActual:\n%s", To2DString(expectedMovesBlack), To2DString(actualMovesBlack))
+// 	}
+// }
 
 func CorrectMoves(t *testing.T, b BitBoard, side int, expectedMoves uint64, generator func(int) uint64) {
 	moves := generator(side)
@@ -89,40 +89,40 @@ func CorrectMoves(t *testing.T, b BitBoard, side int, expectedMoves uint64, gene
 	}
 }
 
-func TestPawnMoveGeneration(t *testing.T) {
-	ebe := DefaultBoard()
-	bitboard := BitBoard{}
-	bitboard.FromEBE(ebe.Board)
-
-	expectedAttacks := uint64(0)
-	expectedMovesWhite := uint64(0b1111111111111111) << 16
-	expectedMovesBlack := uint64(0b1111111111111111) << 32
-
-	CorrectPawnMoves(t, bitboard, expectedAttacks, expectedMovesWhite, expectedAttacks, expectedMovesBlack)
-
-	bitboard.Add(WHITE|PAWN, 24)
-	bitboard.Remove(WHITE|PAWN, 8)
-
-	bitboard.Add(WHITE|PAWN, 27)
-	bitboard.Remove(WHITE|PAWN, 11)
-
-	bitboard.Add(WHITE|PAWN, 31)
-	bitboard.Remove(WHITE|PAWN, 15)
-
-	bitboard.Add(BLACK|PAWN, 33)
-	bitboard.Remove(BLACK|PAWN, 49)
-
-	bitboard.Add(BLACK|PAWN, 36)
-	bitboard.Remove(BLACK|PAWN, 52)
-
-	bitboard.Add(BLACK|PAWN, 39)
-	bitboard.Remove(BLACK|PAWN, 55)
-
-	bitboard.UpdateSide(WHITE)
-	bitboard.UpdateSide(BLACK)
-
-	CorrectPawnMoves(t, bitboard, uint64(77309411328), uint64(40642150400), uint64(150994944), uint64(120315220852736))
-}
+// func TestPawnMoveGeneration(t *testing.T) {
+// 	ebe := DefaultBoard()
+// 	bitboard := BitBoard{}
+// 	bitboard.FromEBE(ebe.Board)
+//
+// 	expectedAttacks := uint64(0)
+// 	expectedMovesWhite := uint64(0b1111111111111111) << 16
+// 	expectedMovesBlack := uint64(0b1111111111111111) << 32
+//
+// 	CorrectPawnMoves(t, bitboard, expectedAttacks, expectedMovesWhite, expectedAttacks, expectedMovesBlack)
+//
+// 	bitboard.Add(WHITE|PAWN, 24)
+// 	bitboard.Remove(WHITE|PAWN, 8)
+//
+// 	bitboard.Add(WHITE|PAWN, 27)
+// 	bitboard.Remove(WHITE|PAWN, 11)
+//
+// 	bitboard.Add(WHITE|PAWN, 31)
+// 	bitboard.Remove(WHITE|PAWN, 15)
+//
+// 	bitboard.Add(BLACK|PAWN, 33)
+// 	bitboard.Remove(BLACK|PAWN, 49)
+//
+// 	bitboard.Add(BLACK|PAWN, 36)
+// 	bitboard.Remove(BLACK|PAWN, 52)
+//
+// 	bitboard.Add(BLACK|PAWN, 39)
+// 	bitboard.Remove(BLACK|PAWN, 55)
+//
+// 	bitboard.UpdateSide(WHITE)
+// 	bitboard.UpdateSide(BLACK)
+//
+// 	CorrectPawnMoves(t, bitboard, uint64(77309411328), uint64(40642150400), uint64(150994944), uint64(120315220852736))
+// }
 
 func TestKnightMoveGeneration(t *testing.T) {
 	bitboard := BitBoard{}

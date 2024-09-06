@@ -1,0 +1,317 @@
+=== RUN   TestPerftStarting
+perft evaluated 20 moves to depth of 1 in 00000ms, 00031746 moves/second
+creating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackperft evaluated 400 moves to depth of 2 in 00010ms, 00039066 moves/second
+creating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackperft evaluated 8902 moves to depth of 3 in 00178ms, 00049748 moves/second
+creating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackBoard before en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p| |p|p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| | | | | | |P|p|
+-----------------
+|P| | | | | | | |
+-----------------
+| |P|P|P|P|P| |P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Move: f4g3
+Board after en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p| |p|p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| | | | | | | |p|
+-----------------
+|P| | | | | |p| |
+-----------------
+| |P|P|P|P|P| |P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Board before undoing en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p| |p|p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| | | | | | | |p|
+-----------------
+|P| | | | | |p| |
+-----------------
+| |P|P|P|P|P| |P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Move: f4g3
+Board after undoing en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p| |p|p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| | | | | |p|P|p|
+-----------------
+|P| | | | | | | |
+-----------------
+| |P|P|P|P|P| |P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+creating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackcreating pawn moves as blackBoard before en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| | |P|p| |p| |p|
+-----------------
+|P| | | | | | | |
+-----------------
+| |P| |P|P|P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Move: b4c3
+Board after en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| | | |p| |p| |p|
+-----------------
+|P| |p| | | | | |
+-----------------
+| |P| |P|P|P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Board before undoing en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| | | |p| |p| |p|
+-----------------
+|P| |p| | | | | |
+-----------------
+| |P| |P|P|P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Move: b4c3
+Board after undoing en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| |p|P|p| |p| |p|
+-----------------
+|P| | | | | | | |
+-----------------
+| |P| |P|P|P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+creating pawn moves as blackcreating pawn moves as blackBoard before en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| |p| |p|P|p| |p|
+-----------------
+|P| | | | |p| |p|
+-----------------
+| |P|P|P| |P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Move: f4e3
+Board after en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| |p| |p| | | |p|
+-----------------
+|P| | | |p|p| |p|
+-----------------
+| |P|P|P| |P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Board before undoing en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| |p| |p| | | |p|
+-----------------
+|P| | | |p|p| |p|
+-----------------
+| |P|P|P| |P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Move: f4e3
+Board after undoing en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| |p| |p|P|p| |p|
+-----------------
+|P| | | | |p| |p|
+-----------------
+| |P|P|P| |P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Board before en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| |p| |p|P|p| |p|
+-----------------
+|P| | | | |p| |p|
+-----------------
+| |P|P|P| |P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Move: d4e3
+Board after en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| |p| | | |p| |p|
+-----------------
+|P| | | |p|p| |p|
+-----------------
+| |P|P|P| |P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Board before undoing en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| |p| | | |p| |p|
+-----------------
+|P| | | |p|p| |p|
+-----------------
+| |P|P|P| |P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+Move: d4e3
+Board after undoing en passant:
+-----------------
+|r|n|b|q|k|b|n|r|
+-----------------
+|p|p| |p|p|p|p|p|
+-----------------
+|p| | | | | | | |
+-----------------
+|p|p|p|p|p|p|p|p|
+-----------------
+| |p| |p|P|p| |p|
+-----------------
+|P| | | | |p| |p|
+-----------------
+| |P|P|P| |P|P|P|
+-----------------
+|R|N|B|Q|K|B|N|R|
+-----------------
+perft evaluated 4338 moves to depth of 4 in 00090ms, 00047920 moves/second
+    perft_test.go:22: Expected legal move count (197281) does not equal computed count (4338) at depth 4 for board
+        rnbqkbnr/pppppppp/8/pp6/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+        Perft results:
+        a2a3: 4338
+perft evaluated 0 moves to depth of 5 in 00000ms, 00000000 moves/second
+    perft_test.go:22: Expected legal move count (4865609) does not equal computed count (0) at depth 5 for board
+        rnbqkbnr/pppppppp/8/pp6/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+        Perft results:
+perft evaluated 0 moves to depth of 6 in 00000ms, 00000000 moves/second
+    perft_test.go:22: Expected legal move count (119060324) does not equal computed count (0) at depth 6 for board
+        rnbqkbnr/pppppppp/8/pp6/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+        Perft results:
+--- FAIL: TestPerftStarting (0.28s)
+FAIL
+FAIL	github.com/jfosburgh/gomes/pkg/chess	0.284s
+FAIL

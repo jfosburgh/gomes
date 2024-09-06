@@ -40,7 +40,8 @@ func (b *BitBoard) SidePieces(side int) uint64 {
 }
 
 func (b *BitBoard) SideThreatens(side int) uint64 {
-	threatens, _ := b.PawnMoves(side)
+	threatensWest, threatensEast, _, _ := b.PawnMoves(side)
+	threatens := threatensEast | threatensWest
 	threatens = threatens | b.RookMoves(side)
 	threatens = threatens | b.KnightMoves(side)
 	threatens = threatens | b.BishopMoves(side)
@@ -101,7 +102,8 @@ func (b *BitBoard) InCheck(side int) bool {
 		// actual = true
 	}
 
-	threatens, _ = genPawnMoves(side, selfBitboard, king, all)
+	threatensWest, threatensEast, _, _ := genPawnMoves(side, selfBitboard, king, all)
+	threatens = threatensEast | threatensWest
 	// fmt.Printf("found following threatens if king were pawn:\n%s\n", To2DString(threatens))
 	if threatens&b[enemySide|PAWN] != 0 {
 		// fmt.Println("in check from pawn")
@@ -118,7 +120,7 @@ func (b *BitBoard) InCheck(side int) bool {
 	// return b[side|KING]&b.SideThreatens(enemy(side)) != 0
 }
 
-func (b *BitBoard) PawnMoves(side int) (uint64, uint64) {
+func (b *BitBoard) PawnMoves(side int) (uint64, uint64, uint64, uint64) {
 	selfBitboard := b[side]
 	pawns := b[side|PAWN]
 	allPieces := b.AllPieces()
@@ -126,27 +128,30 @@ func (b *BitBoard) PawnMoves(side int) (uint64, uint64) {
 	return genPawnMoves(side, selfBitboard, pawns, allPieces)
 }
 
-func genPawnMoves(side int, selfBitboard, pawns, allPieces uint64) (uint64, uint64) {
-	if side != WHITE {
-		selfBitboard = rotate180(selfBitboard)
-		pawns = rotate180(pawns)
-		allPieces = rotate180(allPieces)
+func genPawnMoves(side int, selfBitboard, pawns, allPieces uint64) (uint64, uint64, uint64, uint64) {
+	if side == WHITE {
+		attacksWest := ((^fileMask(1) & pawns) << NORTHWEST) & (^selfBitboard)
+		attacksEast := ((^fileMask(8) & pawns) << NORTHEAST) & (^selfBitboard)
+
+		var singleAdvance, doubleAdvance uint64
+		doubleAdvanceable := pawns & (rankMask(2) | rankMask(7))
+
+		singleAdvance = pawns << 8
+		doubleAdvance = (doubleAdvanceable << 8 & (^allPieces)) << 8
+
+		return attacksWest, attacksEast, singleAdvance & (^allPieces), doubleAdvance & (^allPieces)
+	} else {
+		attacksWest := ((^fileMask(1) & pawns) >> NORTHEAST) & (^selfBitboard)
+		attacksEast := ((^fileMask(8) & pawns) >> NORTHWEST) & (^selfBitboard)
+
+		var singleAdvance, doubleAdvance uint64
+		doubleAdvanceable := pawns & (rankMask(2) | rankMask(7))
+
+		singleAdvance = pawns >> 8
+		doubleAdvance = (doubleAdvanceable >> 8 & (^allPieces)) >> 8
+
+		return attacksWest, attacksEast, singleAdvance & (^allPieces), doubleAdvance & (^allPieces)
 	}
-
-	potentialAttacks := uint64(0)
-	potentialAttacks = (^fileMask(1) & pawns) << NORTHWEST
-	potentialAttacks = potentialAttacks | ((^fileMask(8) & pawns) << NORTHEAST)
-
-	var singleAdvance, doubleAdvance uint64
-	doubleAdvanceable := pawns & (rankMask(2) | rankMask(7))
-
-	singleAdvance = pawns << 8
-	doubleAdvance = (doubleAdvanceable << 8 & (^allPieces)) << 8
-
-	if side != WHITE {
-		return rotate180(potentialAttacks & (^selfBitboard)), rotate180((singleAdvance | doubleAdvance) & (^allPieces))
-	}
-	return potentialAttacks & (^selfBitboard), (singleAdvance | doubleAdvance) & (^allPieces)
 }
 
 func (b *BitBoard) KnightMoves(side int) uint64 {

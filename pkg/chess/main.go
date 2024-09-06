@@ -201,7 +201,10 @@ func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
 	res := make(chan int, len(moves))
 
 	for _, move := range moves {
-		if depth >= 5 || depth == startDepth {
+		// if depth == startDepth {
+		// 	fmt.Printf("Searching after move %s on board state\n%s\n", move, c.EBE.Board)
+		// }
+		if (depth >= 5 || depth == startDepth) && PARALLEL_SEARCH {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -213,12 +216,13 @@ func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
 				if !clone.Bitboard.InCheck(active) {
 					childMoveCount, _ = clone.Perft(depth-1, startDepth, debug)
 				}
+
+				if depth == startDepth && childMoveCount != 0 {
+					resultString += fmt.Sprintf("%s: %d %s\n", move, childMoveCount, clone.EBE.ToFEN())
+				}
 				clone.UnmakeMove(move)
 
 				res <- childMoveCount
-				if depth == startDepth && childMoveCount != 0 {
-					resultString += fmt.Sprintf("%s: %d\n", move, childMoveCount)
-				}
 			}()
 		} else {
 			active := c.EBE.Active << 3
@@ -228,12 +232,12 @@ func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
 			if !c.Bitboard.InCheck(active) {
 				childMoveCount, _ = c.Perft(depth-1, startDepth, debug)
 			}
-			c.UnmakeMove(move)
 
 			res <- childMoveCount
 			if depth == startDepth && childMoveCount != 0 {
-				resultString += fmt.Sprintf("%s: %d\n", move, childMoveCount)
+				resultString += fmt.Sprintf("%s: %d %s\n", move, childMoveCount, c.EBE.ToFEN())
 			}
+			c.UnmakeMove(move)
 		}
 	}
 
@@ -243,7 +247,7 @@ func (c *ChessGame) Perft(depth, startDepth int, debug bool) (int, string) {
 
 	if depth == startDepth {
 		runTime := time.Since(start)
-		fmt.Printf("perft evaluated to depth of %d in %05dms, %08d moves/second\n", startDepth, runTime.Milliseconds(), int(float32(count)/float32(runTime.Microseconds())*1e6))
+		fmt.Printf("perft evaluated %d moves to depth of %d in %05dms, %08d moves/second\n", count, startDepth, runTime.Milliseconds(), int(float32(count)/float32(runTime.Microseconds())*1e6))
 	}
 
 	return count, resultString

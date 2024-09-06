@@ -29,7 +29,10 @@ type Move struct {
 func InitLookups() {
 	for i := range 64 {
 		KNIGHT_LOOKUP[i] = getKnightMoves(0b1 << i)
+		// if i == 57 {
+		// }
 		KING_LOOKUP[i] = getKingMoves(0b1 << i)
+		// fmt.Printf("king moves for \n%s\n\n%s\n", To2DString(0b1<<i), To2DString(KING_LOOKUP[i]))
 	}
 
 	LOOKUPS_INITIALIZED = true
@@ -83,7 +86,9 @@ func (c *ChessGame) GeneratePseudoLegalKing(side int) []Move {
 	moves := []Move{}
 
 	kingLoc := toPieceLocations(c.Bitboard[side|KING])[0]
+	// fmt.Printf("generating king moves for\n%s\nin board\n%s", To2DString(c.Bitboard[side|KING]), c.EBE.Board)
 	moveLocs := toPieceLocations(KING_LOOKUP[kingLoc] & (^c.Bitboard[side]))
+	// fmt.Printf("king moves:\n%s\n\n", To2DString(KING_LOOKUP[kingLoc]&(^c.Bitboard[side])))
 
 	for _, moveLoc := range moveLocs {
 		moves = append(moves, Move{
@@ -96,6 +101,7 @@ func (c *ChessGame) GeneratePseudoLegalKing(side int) []Move {
 			CastlingRights:  c.EBE.CastlingRights,
 			EnPassantTarget: c.EBE.EnPassantTarget,
 		})
+		// fmt.Printf("added %s to king moves\n", moves[len(moves)-1])
 	}
 
 	if c.EBE.CastlingRights == 0 || c.Bitboard.InCheck(side) {
@@ -252,115 +258,149 @@ func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 	// fmt.Printf("Generating pawn moves for side %d\nCurrent Board:\n%s\n", side, c.EBE.Board)
 
 	moves := []Move{}
-	pawnThreatens, pawnMoves := c.Bitboard.PawnMoves(side)
-	pawnAttacks := pawnThreatens & c.Bitboard.SidePieces(enemy(side))
-	if c.EBE.EnPassantTarget != -1 {
-		// fmt.Printf("adding en passant target at %s\n", int2algebraic(c.EBE.EnPassantTarget))
-		pawnAttacks = pawnAttacks | (pawnThreatens & (0b1 << c.EBE.EnPassantTarget))
-	}
+	pawnThreatensWest, pawnThreatensEast, pawnAdvance, pawnDoubleAdvance := c.Bitboard.PawnMoves(side)
+	pawnAttacksWest := pawnThreatensWest & c.Bitboard.SidePieces(enemy(side))
+	pawnAttacksEast := pawnThreatensEast & c.Bitboard.SidePieces(enemy(side))
 	// fmt.Printf("Pawn moves:\n%s\n", To2DString(pawnMoves))
 	// fmt.Printf("Pawn attacks:\n%s\n", To2DString(pawnAttacks))
 	// fmt.Printf("Pawn threatens:\n%s\n", To2DString(pawnThreatens))
 
-	attackLocs := toPieceLocations(pawnAttacks)
-	attackOrigins := [2]int{NORTHEAST, NORTHWEST}
-	if side == WHITE {
-		attackOrigins = [2]int{SOUTHEAST, SOUTHWEST}
-	}
+	backward, westSource, eastSource := SOUTH, SOUTHEAST, SOUTHWEST
+	if side != WHITE {
+		backward, westSource, eastSource = NORTH, NORTHEAST, NORTHWEST
+	} // fmt.Printf("generating attacks at locations %+v\n", attackLocs)
 
-	// fmt.Printf("generating attacks at locations %+v\n", attackLocs)
+	advanceLocs := toPieceLocations(pawnAdvance)
+	for _, advanceLoc := range advanceLocs {
+		if advanceLoc >= 56 || advanceLoc <= 7 {
+			for _, promotion := range []int{KNIGHT, BISHOP, ROOK, QUEEN} {
+				moves = append(moves, Move{
+					Piece:     side | PAWN,
+					Start:     advanceLoc + backward,
+					End:       advanceLoc,
+					Promotion: side | promotion,
 
-	for _, attackLoc := range attackLocs {
-		for _, attackOrigin := range attackOrigins {
-			if attackLoc%8 == 7 && (attackOrigin == NORTHEAST || attackOrigin == SOUTHEAST) {
-				continue
+					Halfmoves:       c.EBE.Halfmoves,
+					CastlingRights:  c.EBE.CastlingRights,
+					EnPassantTarget: c.EBE.EnPassantTarget,
+				})
 			}
-			if attackLoc%8 == 0 && (attackOrigin == NORTHWEST || attackOrigin == SOUTHWEST) {
-				continue
-			}
+		} else {
+			moves = append(moves, Move{
+				Piece: side | PAWN,
+				Start: advanceLoc + backward,
+				End:   advanceLoc,
 
-			if c.EBE.Board[attackLoc+attackOrigin] == side|PAWN {
-				// fmt.Printf("adding pawn advance from %s (%d) to %s (%d)\n", int2algebraic(attackLoc+attackOrigin), attackLoc+attackOrigin, int2algebraic(attackLoc), attackLoc)
-				if attackLoc >= 56 || attackLoc <= 7 {
-					for _, promotion := range []int{KNIGHT, BISHOP, ROOK, QUEEN} {
-						moves = append(moves, Move{
-							Piece:     side | PAWN,
-							Start:     attackLoc + attackOrigin,
-							End:       attackLoc,
-							Capture:   c.EBE.Board[attackLoc],
-							Promotion: side | promotion,
-
-							Halfmoves:       c.EBE.Halfmoves,
-							CastlingRights:  c.EBE.CastlingRights,
-							EnPassantTarget: c.EBE.EnPassantTarget,
-						})
-					}
-				} else {
-					captured := c.EBE.Board[attackLoc]
-					if attackLoc == c.EBE.EnPassantTarget {
-						if side == WHITE {
-							captured = c.EBE.Board[attackLoc-8]
-						} else {
-							captured = c.EBE.Board[attackLoc+8]
-						}
-					}
-					moves = append(moves, Move{
-						Piece:   side | PAWN,
-						Start:   attackLoc + attackOrigin,
-						End:     attackLoc,
-						Capture: captured,
-
-						Halfmoves:       c.EBE.Halfmoves,
-						CastlingRights:  c.EBE.CastlingRights,
-						EnPassantTarget: c.EBE.EnPassantTarget,
-					})
-				}
-			}
+				Halfmoves:       c.EBE.Halfmoves,
+				CastlingRights:  c.EBE.CastlingRights,
+				EnPassantTarget: c.EBE.EnPassantTarget,
+			})
 		}
 	}
 
-	moveLocs := toPieceLocations(pawnMoves)
-	moveOrigins := [2]int{NORTH, NORTH + NORTH}
-	if side == WHITE {
-		moveOrigins = [2]int{SOUTH, SOUTH + SOUTH}
+	doubleAdvanceLocs := toPieceLocations(pawnDoubleAdvance)
+	for _, doubleAdvanceLoc := range doubleAdvanceLocs {
+		moves = append(moves, Move{
+			Piece: side | PAWN,
+			Start: doubleAdvanceLoc + backward*2,
+			End:   doubleAdvanceLoc,
+
+			Halfmoves:       c.EBE.Halfmoves,
+			CastlingRights:  c.EBE.CastlingRights,
+			EnPassantTarget: c.EBE.EnPassantTarget,
+		})
 	}
 
-	// fmt.Printf("generating moves at locations %+v\n", moveLocs)
-	for _, moveLoc := range moveLocs {
-		for _, moveOrigin := range moveOrigins {
-			if moveOrigin == SOUTH+SOUTH && (moveLoc/8 != 3 || c.EBE.Board[moveLoc+SOUTH] != EMPTY) {
-				continue
-			}
-			if moveOrigin == NORTH+NORTH && (moveLoc/8 != 4 || c.EBE.Board[moveLoc+NORTH] != EMPTY) {
-				continue
-			}
-			if c.EBE.Board[moveLoc+moveOrigin] == side|PAWN {
-				if moveLoc >= 56 || moveLoc <= 7 {
-					for _, promotion := range []int{KNIGHT, BISHOP, ROOK, QUEEN} {
-						moves = append(moves, Move{
-							Piece:     side | PAWN,
-							Start:     moveLoc + moveOrigin,
-							End:       moveLoc,
-							Promotion: side | promotion,
+	attackLocs := toPieceLocations(pawnAttacksWest)
+	for _, attackLoc := range attackLocs {
+		if attackLoc >= 56 || attackLoc <= 7 {
+			for _, promotion := range []int{KNIGHT, BISHOP, ROOK, QUEEN} {
+				moves = append(moves, Move{
+					Piece:     side | PAWN,
+					Start:     attackLoc + westSource,
+					End:       attackLoc,
+					Capture:   c.EBE.Board[attackLoc],
+					Promotion: side | promotion,
 
-							Halfmoves:       c.EBE.Halfmoves,
-							CastlingRights:  c.EBE.CastlingRights,
-							EnPassantTarget: c.EBE.EnPassantTarget,
-						})
-					}
-				} else {
-					// fmt.Printf("adding pawn advance from %s (%d) to %s (%d)\n", int2algebraic(moveLoc+moveOrigin), moveLoc+moveOrigin, int2algebraic(moveLoc), moveLoc)
-					moves = append(moves, Move{
-						Piece: side | PAWN,
-						Start: moveLoc + moveOrigin,
-						End:   moveLoc,
-
-						Halfmoves:       c.EBE.Halfmoves,
-						CastlingRights:  c.EBE.CastlingRights,
-						EnPassantTarget: c.EBE.EnPassantTarget,
-					})
-				}
+					Halfmoves:       c.EBE.Halfmoves,
+					CastlingRights:  c.EBE.CastlingRights,
+					EnPassantTarget: c.EBE.EnPassantTarget,
+				})
 			}
+		} else {
+			moves = append(moves, Move{
+				Piece:   side | PAWN,
+				Start:   attackLoc + westSource,
+				End:     attackLoc,
+				Capture: c.EBE.Board[attackLoc],
+
+				Halfmoves:       c.EBE.Halfmoves,
+				CastlingRights:  c.EBE.CastlingRights,
+				EnPassantTarget: c.EBE.EnPassantTarget,
+			})
+		}
+	}
+
+	attackLocs = toPieceLocations(pawnAttacksEast)
+	for _, attackLoc := range attackLocs {
+		if attackLoc >= 56 || attackLoc <= 7 {
+			for _, promotion := range []int{KNIGHT, BISHOP, ROOK, QUEEN} {
+				moves = append(moves, Move{
+					Piece:     side | PAWN,
+					Start:     attackLoc + eastSource,
+					End:       attackLoc,
+					Capture:   c.EBE.Board[attackLoc],
+					Promotion: side | promotion,
+
+					Halfmoves:       c.EBE.Halfmoves,
+					CastlingRights:  c.EBE.CastlingRights,
+					EnPassantTarget: c.EBE.EnPassantTarget,
+				})
+			}
+		} else {
+			moves = append(moves, Move{
+				Piece:   side | PAWN,
+				Start:   attackLoc + eastSource,
+				End:     attackLoc,
+				Capture: c.EBE.Board[attackLoc],
+
+				Halfmoves:       c.EBE.Halfmoves,
+				CastlingRights:  c.EBE.CastlingRights,
+				EnPassantTarget: c.EBE.EnPassantTarget,
+			})
+		}
+	}
+
+	if c.EBE.EnPassantTarget != -1 {
+		// fmt.Printf("adding en passant target at %s\n", int2algebraic(c.EBE.EnPassantTarget))
+		enPassantWest := pawnThreatensWest & (0b1 << c.EBE.EnPassantTarget)
+		if enPassantWest != 0 {
+			moves = append(moves, Move{
+				Piece:   side | PAWN,
+				Start:   c.EBE.EnPassantTarget + westSource,
+				End:     c.EBE.EnPassantTarget,
+				Capture: enemy(side) | PAWN,
+
+				Halfmoves:       c.EBE.Halfmoves,
+				CastlingRights:  c.EBE.CastlingRights,
+				EnPassantTarget: c.EBE.EnPassantTarget,
+			})
+			// fmt.Printf("adding en passant move %s for board\n%s\n", moves[len(moves)-1], c.EBE.Board)
+		}
+
+		enPassantEast := pawnThreatensEast & (0b1 << c.EBE.EnPassantTarget)
+		if enPassantEast != 0 {
+			moves = append(moves, Move{
+				Piece:   side | PAWN,
+				Start:   c.EBE.EnPassantTarget + eastSource,
+				End:     c.EBE.EnPassantTarget,
+				Capture: enemy(side) | PAWN,
+
+				Halfmoves:       c.EBE.Halfmoves,
+				CastlingRights:  c.EBE.CastlingRights,
+				EnPassantTarget: c.EBE.EnPassantTarget,
+			})
+			// fmt.Printf("adding en passant move %s for board\n%s\n", moves[len(moves)-1], c.EBE.Board)
 		}
 	}
 
@@ -384,6 +424,9 @@ func (c *ChessGame) ReplacePiece(oldPiece, newPiece, location int) {
 }
 
 func (c *ChessGame) MakeMove(move Move) {
+	// enPassant := false
+	// enPassantDebug := fmt.Sprintf("Board before en passant:\n%s\nMove: %s\n", c.EBE.Board, move)
+	//
 	c.RemovePiece(move.Piece, move.Start)
 	pieceToPlace := move.Piece
 	if move.Promotion != 0 {
@@ -394,7 +437,8 @@ func (c *ChessGame) MakeMove(move Move) {
 		c.PlacePiece(pieceToPlace, move.End)
 	} else {
 		c.Captured = append(c.Captured, move.Capture)
-		if move.EnPassantTarget == move.End {
+		if move.EnPassantTarget == move.End && move.Piece&0b0111 == PAWN {
+			// enPassant = true
 			c.PlacePiece(pieceToPlace, move.End)
 			if c.EBE.Active == 0 {
 				// fmt.Printf("capturing en passant target at %s in move %s with board state \n%s\n", int2algebraic(move.End-8), move, c.EBE.Board)
@@ -496,9 +540,16 @@ func (c *ChessGame) MakeMove(move Move) {
 	} else {
 		c.EBE.EnPassantTarget = -1
 	}
+	//
+	// if enPassant {
+	// 	fmt.Printf("%sBoard after en passant:\n%s\n", enPassantDebug, c.EBE.Board)
+	// }
 }
 
 func (c *ChessGame) UnmakeMove(move Move) {
+	// enPassant := false
+	// enPassantDebug := fmt.Sprintf("Board before undoing en passant:\n%s\nMove: %s\n", c.EBE.Board, move)
+	//
 	c.PlacePiece(move.Piece, move.Start)
 	pieceToRemove := move.Piece
 	if move.Promotion != 0 {
@@ -508,7 +559,8 @@ func (c *ChessGame) UnmakeMove(move Move) {
 	if move.Capture == 0 {
 		c.RemovePiece(pieceToRemove, move.End)
 	} else {
-		if move.End == move.EnPassantTarget {
+		if move.End == move.EnPassantTarget && move.Piece&0b0111 == PAWN {
+			// enPassant = true
 			c.RemovePiece(pieceToRemove, move.End)
 			if c.EBE.Active == 1 {
 				// fmt.Printf("replacing en passant target at %s in move %s with board state \n%s\n", int2algebraic(move.End-8), move, c.EBE.Board)
@@ -561,4 +613,8 @@ func (c *ChessGame) UnmakeMove(move Move) {
 	c.EBE.Halfmoves = move.Halfmoves
 	c.EBE.CastlingRights = move.CastlingRights
 	c.EBE.EnPassantTarget = move.EnPassantTarget
+	//
+	// if enPassant {
+	// 	fmt.Printf("%sBoard after undoing en passant:\n%s\n", enPassantDebug, c.EBE.Board)
+	// }
 }

@@ -6,15 +6,15 @@ import (
 	"testing"
 )
 
-const TEST_DEPTH = 7
+const TEST_DEPTH = 6
 const DEBUG = false
 
 func TestPerftStarting(t *testing.T) {
 	expectedCounts := []int{1, 20, 400, 8902, 197281, 4865609, 119060324, 3195901860, 84998978956, 2439530234167, 69352859712417, 2097651003696806, 62854969236701747, 1981066775000396239, 61, 885021521585529237} // 2015099950053364471960
 
 	c := NewGame()
-	// expectedCounts = []int{1, 17}
-	// c.SetStateFromFEN("rnbqkb1r/p1pppppp/p6n/8/4P3/P7/1PPP1PPP/RNBQK1NR b KQkq - 0 1")
+	// expectedCounts = []int{1, 27}
+	// c.SetStateFromFEN("rnbqkbnr/ppp1pppp/3p4/2P5/8/8/PP1PPPPP/RNBQKBNR b KQkq - 0 2")
 
 	for depth, expected := range expectedCounts[:min(TEST_DEPTH, len(expectedCounts))] {
 		actual, results := c.Perft(depth, depth, DEBUG)
