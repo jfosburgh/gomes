@@ -85,8 +85,15 @@ func (c *ChessGame) GeneratePseudoLegal() []Move {
 func (c *ChessGame) GeneratePseudoLegalKing(side int) []Move {
 	moves := []Move{}
 
-	kingLoc := toPieceLocations(c.Bitboard[side|KING])[0]
-	// fmt.Printf("generating king moves for\n%s\nin board\n%s", To2DString(c.Bitboard[side|KING]), c.EBE.Board)
+	kingLocs := toPieceLocations(c.Bitboard[side|KING])
+	if len(kingLocs) == 0 {
+		fmt.Printf("generating king moves for\n%s\nin board\n%s\n", To2DString(c.Bitboard[side|KING]), c.EBE.Board)
+		for _, move := range c.Moves {
+			fmt.Printf(" %s", move)
+		}
+		fmt.Println()
+	}
+	kingLoc := kingLocs[0]
 	moveLocs := toPieceLocations(KING_LOOKUP[kingLoc] & (^c.Bitboard[side]))
 	// fmt.Printf("king moves:\n%s\n\n", To2DString(KING_LOOKUP[kingLoc]&(^c.Bitboard[side])))
 
@@ -372,9 +379,14 @@ func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 		}
 	}
 
+	mask := rankMask(3)
+	if c.EBE.Active<<3 == BLACK {
+		mask = rotate180(mask)
+	}
+
 	if c.EBE.EnPassantTarget != -1 {
 		// fmt.Printf("adding en passant target at %s\n", int2algebraic(c.EBE.EnPassantTarget))
-		enPassantWest := pawnThreatensWest & (0b1 << c.EBE.EnPassantTarget)
+		enPassantWest := pawnThreatensWest & (0b1 << c.EBE.EnPassantTarget) & (^mask)
 		if enPassantWest != 0 {
 			moves = append(moves, Move{
 				Piece:   side | PAWN,
@@ -389,7 +401,7 @@ func (c *ChessGame) GeneratePseudoLegalPawn(side int) []Move {
 			// fmt.Printf("adding en passant move %s for board\n%s\n", moves[len(moves)-1], c.EBE.Board)
 		}
 
-		enPassantEast := pawnThreatensEast & (0b1 << c.EBE.EnPassantTarget)
+		enPassantEast := pawnThreatensEast & (0b1 << c.EBE.EnPassantTarget) & (^mask)
 		if enPassantEast != 0 {
 			moves = append(moves, Move{
 				Piece:   side | PAWN,
@@ -425,9 +437,6 @@ func (c *ChessGame) ReplacePiece(oldPiece, newPiece, location int) {
 }
 
 func (c *ChessGame) MakeMove(move Move) {
-	// enPassant := false
-	// enPassantDebug := fmt.Sprintf("Board before en passant:\n%s\nMove: %s\n", c.EBE.Board, move)
-	//
 	c.RemovePiece(move.Piece, move.Start)
 	pieceToPlace := move.Piece
 	if move.Promotion != 0 {
@@ -439,7 +448,6 @@ func (c *ChessGame) MakeMove(move Move) {
 	} else {
 		c.Captured = append(c.Captured, move.Capture)
 		if move.EnPassantTarget == move.End && move.Piece&0b0111 == PAWN {
-			// enPassant = true
 			c.PlacePiece(pieceToPlace, move.End)
 			if c.EBE.Active == 0 {
 				// fmt.Printf("capturing en passant target at %s in move %s with board state \n%s\n", int2algebraic(move.End-8), move, c.EBE.Board)
@@ -541,16 +549,9 @@ func (c *ChessGame) MakeMove(move Move) {
 	} else {
 		c.EBE.EnPassantTarget = -1
 	}
-	//
-	// if enPassant {
-	// 	fmt.Printf("%sBoard after en passant:\n%s\n", enPassantDebug, c.EBE.Board)
-	// }
 }
 
 func (c *ChessGame) UnmakeMove(move Move) {
-	// enPassant := false
-	// enPassantDebug := fmt.Sprintf("Board before undoing en passant:\n%s\nMove: %s\n", c.EBE.Board, move)
-	//
 	c.PlacePiece(move.Piece, move.Start)
 	pieceToRemove := move.Piece
 	if move.Promotion != 0 {
@@ -561,7 +562,6 @@ func (c *ChessGame) UnmakeMove(move Move) {
 		c.RemovePiece(pieceToRemove, move.End)
 	} else {
 		if move.End == move.EnPassantTarget && move.Piece&0b0111 == PAWN {
-			// enPassant = true
 			c.RemovePiece(pieceToRemove, move.End)
 			if c.EBE.Active == 1 {
 				// fmt.Printf("replacing en passant target at %s in move %s with board state \n%s\n", int2algebraic(move.End-8), move, c.EBE.Board)
@@ -614,8 +614,4 @@ func (c *ChessGame) UnmakeMove(move Move) {
 	c.EBE.Halfmoves = move.Halfmoves
 	c.EBE.CastlingRights = move.CastlingRights
 	c.EBE.EnPassantTarget = move.EnPassantTarget
-	//
-	// if enPassant {
-	// 	fmt.Printf("%sBoard after undoing en passant:\n%s\n", enPassantDebug, c.EBE.Board)
-	// }
 }

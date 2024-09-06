@@ -4,6 +4,7 @@ import (
 	"os"
 	"runtime/pprof"
 	"testing"
+	"time"
 )
 
 const TEST_DEPTH = 6
@@ -126,8 +127,37 @@ func TestPerftPosition6(t *testing.T) {
 	}
 }
 
-func BenchmarkPerft(b *testing.B) {
-	f, err := os.Create("cpu.pprof")
+// func BenchmarkPerft(b *testing.B) {
+// 	f, err := os.Create("perft.pprof")
+// 	if err != nil {
+// 		b.Fatal(err)
+// 	}
+// 	defer f.Close()
+//
+// 	pprof.StartCPUProfile(f)
+// 	defer pprof.StopCPUProfile()
+//
+// 	expectedCounts := []int{1, 20, 400, 8902, 197281, 4865609, 119060324}
+//
+// 	c := NewGame()
+//
+// 	for depth, expected := range expectedCounts[:TEST_DEPTH] {
+// 		actual, results := c.Perft(depth, depth, DEBUG)
+// 		if expected != actual {
+// 			b.Errorf("Expected legal move count (%d) does not equal computed count (%d) at depth %d for board\n%s\nPerft results:\n%s", expected, actual, depth, c.EBE.ToFEN(), results)
+// 		}
+// 	}
+// }
+
+func TestSearch(t *testing.T) {
+	c := NewGame()
+	c.SearchTime = time.Second * 2
+
+	c.Search()
+}
+
+func BenchmarkSearch(b *testing.B) {
+	f, err := os.Create("search.pprof")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -136,14 +166,8 @@ func BenchmarkPerft(b *testing.B) {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	expectedCounts := []int{1, 20, 400, 8902, 197281, 4865609, 119060324}
-
 	c := NewGame()
+	c.SearchTime = time.Second * 2
 
-	for depth, expected := range expectedCounts[:TEST_DEPTH] {
-		actual, results := c.Perft(depth, depth, DEBUG)
-		if expected != actual {
-			b.Errorf("Expected legal move count (%d) does not equal computed count (%d) at depth %d for board\n%s\nPerft results:\n%s", expected, actual, depth, c.EBE.ToFEN(), results)
-		}
-	}
+	c.Search()
 }

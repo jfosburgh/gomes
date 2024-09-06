@@ -37,7 +37,7 @@ func (c *ChessGame) Search() ([]Move, []float64) {
 		skipped := 0
 
 		if depth != 0 {
-			options = c.PreOrder(options)
+			// options = c.PreOrder(options)
 		}
 
 		searchVals := make([]float64, len(options))
@@ -54,6 +54,7 @@ func (c *ChessGame) Search() ([]Move, []float64) {
 					clone.MakeMove(move)
 					v, e, s := clone.Minimax(0, depth, math.Inf(-1), math.Inf(1))
 					clone.UnmakeMove(move)
+
 					if e == -1 {
 						finished = false
 					}
@@ -76,6 +77,7 @@ func (c *ChessGame) Search() ([]Move, []float64) {
 					c.MakeMove(move)
 					v, e, s := c.Minimax(0, depth, math.Inf(-1), math.Inf(1))
 					c.UnmakeMove(move)
+
 					if e == -1 {
 						finished = false
 					}
@@ -172,8 +174,7 @@ func (c *ChessGame) PreOrder(moves []Move) []Move {
 }
 
 func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64, int, int) {
-	moves := c.GetLegalMoves()
-	if len(moves) == 0 {
+	if c.Bitboard.InCheck(c.EBE.Active << 3) {
 		if c.EBE.Active<<3 == BLACK {
 			return 1e6, 1, 0
 		}
@@ -189,6 +190,8 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 		return 0, 1, 0
 	}
 
+	moves := c.GetLegalMoves()
+
 	evaluated := 0
 	skipped := 0
 	checked := 0
@@ -198,15 +201,16 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 	if c.EBE.Active<<3 == WHITE {
 		value := math.Inf(-1)
 		betaHit := false
+
 		for _, move := range moves {
 			select {
 			case <-c.SearchTimer.C:
-				fmt.Println("boop")
 				return 0, -1, 0
 			default:
 				c.MakeMove(move)
 				v, e, s := c.Minimax(depth+1, stopDepth, alpha, beta)
 				c.UnmakeMove(move)
+
 				if e == -1 {
 					return 0, -1, 0
 				}
@@ -220,6 +224,7 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 					betaHit = true
 					break
 				}
+
 				alpha = max(alpha, value)
 			}
 
@@ -231,6 +236,7 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 	} else {
 		value := math.Inf(1)
 		alphaHit := false
+
 		for _, move := range moves {
 			select {
 			case <-c.SearchTimer.C:
@@ -239,6 +245,7 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 				c.MakeMove(move)
 				v, e, s := c.Minimax(depth+1, stopDepth, alpha, beta)
 				c.UnmakeMove(move)
+
 				if e == -1 {
 					return 0, -1, 0
 				}
@@ -252,6 +259,7 @@ func (c *ChessGame) Minimax(depth, stopDepth int, alpha, beta float64) (float64,
 					alphaHit = true
 					break
 				}
+
 				beta = min(beta, value)
 			}
 

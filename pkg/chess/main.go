@@ -149,13 +149,16 @@ func (c *ChessGame) GetLegalMoves() []Move {
 
 	moves := []Move{}
 	active := c.EBE.Active << 3
+	// fmt.Printf("Legal moves for active player %d on board\n%s\n", active, c.EBE.Board)
 	for _, move := range pseudoLegal {
 		c.MakeMove(move)
 		if !c.Bitboard.InCheck(active) {
+			// fmt.Printf(" %s", move)
 			moves = append(moves, move)
 		}
 		c.UnmakeMove(move)
 	}
+	// fmt.Println()
 
 	return moves
 }
