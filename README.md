@@ -1,5 +1,5 @@
 # gomes
-A collection of simple games written in Go.
+A small collection of simple games written in Go.
 ## How to Play
 ### Clone the Repo
 ```bash
@@ -7,12 +7,21 @@ git clone https://github.com/jfosburgh/gomes
 cd gomes
 ```
 ### Setup the Server
+First, fetch dependencies:
 ```bash
-make build server
-make run server
+go mod tidy
 ```
-This will by default host the server at `http://localhost:8080`
-To change the port, create a `.env` file in the `gomes` directory, and add the following:
+Then run the server:
+```bash
+go build -o ./bin/ ./cmd/server
+./bin/server
+```
+or
+```bash
+go run ./cmd/server
+```
+This will by default host the web server at `http://localhost:8080` and an ssh server for TUI connections on port `23234`
+To change the web port, create a `.env` file in the `gomes` directory, and add the following:
 ```
 SERVER_PORT=<port number>
 ```
@@ -21,19 +30,14 @@ Connect to the server and start playing!
 Currently supported clients are:
 - [x] Browser 
 - [x] TUI (terminal user interface)
-- [ ] Generic JSON api
-<!-- #### TUI Instructions -->
-<!-- ```bash -->
-<!-- make build tui -->
-<!-- make run tui -->
-<!-- ``` -->
+
+To connect via TUI, enter the following in a terminal:
+```bash
+ssh localhost -p 23234
+```
 ## The Games
 - [x] Tic-Tac-Toe
-- [ ] Connect4
-- [ ] Checkers
 - [x] Chess
-- [ ] Wordle
-and more to come!
 ## Technical Details
 This project uses Go as the foundation, with [HTMX](https://htmx.org/) for the browser frontend, and [Wish](https://github.com/charmbracelet/wish) to provide the ssh server functionality with [bubbletea](https://github.com/charmbracelet/bubbletea) for the TUI.
 
