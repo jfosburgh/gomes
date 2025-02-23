@@ -1,4 +1,5 @@
 # gomes
+![banner](./assets/banner.png)
 A small collection of simple games written in Go.
 ## How to Play
 ### Clone the Repo
